@@ -39,11 +39,13 @@ func New(cfg Config) (*DB, error) {
 	driver, host, err := getURI(cfg)
 	if err != nil {
 		log.Fatal().Err(err).Msg(fmt.Sprintf("%s status: FAILED", strings.ToUpper(cfg.Driver)))
+		return nil, err
 	}
 
 	db, err := sqlx.Connect(driver, host)
 	if err != nil {
 		log.Fatal().Err(err).Msg(fmt.Sprintf("%s status: FAILED", strings.ToUpper(cfg.Driver)))
+		return nil, err
 	}
 
 	db.SetMaxOpenConns(cfg.MaxOpenConns)

@@ -26,14 +26,10 @@ func New(cfg Config) *QueryLoader {
 		filePath: queryPath,
 	}
 
-	if err := ql.load(); err != nil {
-		log.Panic().Err(err).Msg("Failed to load queries")
-	}
-
 	return ql
 }
 
-func (ql *QueryLoader) load() error {
+func (ql *QueryLoader) Load() error {
 	data, err := os.ReadFile(ql.filePath)
 	if err != nil {
 		return err
@@ -117,4 +113,9 @@ func convertNamedToPositional(query string, data any) (string, []any, error) {
 	}
 
 	return result, args, nil
+}
+
+func (ql *QueryLoader) Clear() error {
+	ql.queries = make(map[string]string)
+	return nil
 }

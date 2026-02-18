@@ -7,6 +7,7 @@ import (
 	"github.com/linggaaskaedo/go-kill/common/app"
 	"github.com/linggaaskaedo/go-kill/common/database"
 	"github.com/linggaaskaedo/go-kill/common/logger"
+	"github.com/linggaaskaedo/go-kill/common/query"
 	"github.com/linggaaskaedo/go-kill/common/server"
 	"github.com/linggaaskaedo/go-kill/user-service/src/internal/config"
 )
@@ -61,7 +62,7 @@ func main() {
 	application.Add(app.NewDatabaseComponent(db0, log))
 
 	// Query Loader Initialization
-	queryLoader := config.New(cfg.Query)
+	queryLoader := query.New(cfg.Query)
 	application.Add(app.NewQueryComponent(queryLoader, log))
 
 	// HTTP Server

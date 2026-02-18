@@ -1,6 +1,8 @@
 package app
 
 import (
+	"context"
+
 	"github.com/linggaaskaedo/go-kill/common/query"
 	"github.com/rs/zerolog"
 )
@@ -14,22 +16,21 @@ func NewQueryComponent(query *query.QueryLoader, logger zerolog.Logger) *QueryCo
 	return &QueryComponent{query: query, logger: logger}
 }
 
-// func (d *DatabaseComponent) Start(ctx context.Context) error {
-// 	pingCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
-// 	defer cancel()
-// 	if err := d.db.PingContext(pingCtx); err != nil {
-// 		return err
-// 	}
+func (d *QueryComponent) Start(ctx context.Context) error {
+	if err := d.query.Load(); err != nil {
+		d.logger.Panic().Err(err).Msg("Failed to load queries")
+		return err
+	}
 
-// 	d.logger.Info().Msg("Database ready")
-// 	<-ctx.Done()
+	return nil
+}
 
-// 	return nil
-// }
+func (d *QueryComponent) Stop(ctx context.Context) error {
+	d.logger.Info().Msg("Closing query loader")
+	if err := d.query.Clear(); err != nil {
+		d.logger.Error().Err(err).Msg("Failed to clear queries")
+		return err
+	}
 
-// func (d *DatabaseComponent) Stop(ctx context.Context) error {
-// 	d.logger.Info().Msg("Closing database")
-// 	d.db.Close()
-
-// 	return nil
-// }
+	return nil
+}

@@ -2,11 +2,9 @@ module github.com/linggaaskaedo/go-kill/user-service
 
 go 1.24.13
 
-replace github.com/linggaaskaaldo/go-kill/common => ../common
-
 require (
 	github.com/goccy/go-yaml v1.19.2
-	// github.com/linggaaskaedo/go-kill/common v0.0.1
+	github.com/linggaaskaedo/go-kill/common v0.0.2
 	github.com/swaggo/swag v1.16.6
 )
 
