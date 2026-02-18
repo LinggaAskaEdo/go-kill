@@ -4,7 +4,7 @@ go 1.24.13
 
 require (
 	github.com/goccy/go-yaml v1.19.2
-	github.com/linggaaskaedo/go-kill/common v0.0.2
+	github.com/linggaaskaedo/go-kill/common v0.0.3
 	github.com/swaggo/swag v1.16.6
 )
 

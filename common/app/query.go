@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/linggaaskaedo/go-kill/common/query"
+
 	"github.com/rs/zerolog"
 )
 

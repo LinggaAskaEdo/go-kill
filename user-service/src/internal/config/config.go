@@ -3,11 +3,12 @@ package config
 import (
 	"os"
 
-	"github.com/goccy/go-yaml"
 	"github.com/linggaaskaedo/go-kill/common/database"
 	"github.com/linggaaskaedo/go-kill/common/logger"
 	"github.com/linggaaskaedo/go-kill/common/query"
 	"github.com/linggaaskaedo/go-kill/common/server"
+
+	"github.com/goccy/go-yaml"
 )
 
 type Config struct {

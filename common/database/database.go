@@ -6,9 +6,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/linggaaskaedo/go-kill/common/preference"
+
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
-	"github.com/linggaaskaedo/go-kill/common/preference"
 	"github.com/rs/zerolog/log"
 )
 
