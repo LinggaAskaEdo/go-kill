@@ -60,6 +60,10 @@ func main() {
 	}
 	application.Add(app.NewDatabaseComponent(db0, log))
 
+	// Query Loader Initialization
+	queryLoader := config.New(cfg.Query)
+	application.Add(app.NewQueryComponent(queryLoader, log))
+
 	// HTTP Server
 	httpServer := server.New(cfg.Server)
 	// router := httpServer.Engine()

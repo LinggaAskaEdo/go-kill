@@ -1,6 +1,7 @@
 logger:
   level: debug
   pretty: true
+
 database:
   database-0:
     enabled: true
@@ -8,9 +9,13 @@ database:
     host: localhost
     port: 5432
     user: postgres
-    password: a5k4CooL
-    dbname: go-kill
+    password: ${POSTGRES_DOCKER_PASSWORD}
+    dbname: go-kill-user
     sslmode: false
+
+queries:
+  path: ./etc/sql/
+
 server:
   port: 8080
   read_timeout: 5s

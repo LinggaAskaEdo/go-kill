@@ -82,5 +82,5 @@ sql-postgres-up: ## Apply up migrations for postgres
 			read -p "Enter postgres password: " pass ; \
 			stty echo ; \
 			echo ; \
-			goose -dir ./etc/migrations/postgres postgres "host=localhost user=postgres password=$$pass dbname=go-kill sslmode=disable" up ; \
+			goose -dir ./etc/migrations/postgres postgres "host=localhost user=postgres password=$$pass dbname=go-kill-user sslmode=disable" up ; \
 		}

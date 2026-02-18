@@ -6,6 +6,7 @@ import (
 	"github.com/goccy/go-yaml"
 	"github.com/linggaaskaedo/go-kill/common/database"
 	"github.com/linggaaskaedo/go-kill/common/logger"
+	"github.com/linggaaskaedo/go-kill/common/query"
 	"github.com/linggaaskaedo/go-kill/common/server"
 )
 
@@ -13,6 +14,7 @@ type Config struct {
 	Logger   logger.Config              `yaml:"logger"`
 	Server   server.Config              `yaml:"server"`
 	Database map[string]database.Config `yaml:"database"`
+	Query    query.Config               `yaml:"queries"`
 }
 
 func Load(configPath string) (*Config, error) {
