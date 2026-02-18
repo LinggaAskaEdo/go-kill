@@ -1,0 +1,18 @@
+logger:
+  level: debug
+  pretty: true
+database:
+  database-0:
+    enabled: true
+    driver: postgres
+    host: localhost
+    port: 5432
+    user: postgres
+    password: a5k4CooL
+    dbname: go-kill
+    sslmode: false
+server:
+  port: 8080
+  read_timeout: 5s
+  write_timeout: 10s
+  idle_timeout: 120s
