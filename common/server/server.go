@@ -2,59 +2,96 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
-	"github.com/linggaaskaedo/go-kill/common/server/middleware"
+	"github.com/linggaaskaedo/go-kill/common/middleware"
 
 	"github.com/gin-gonic/gin"
-	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog"
 )
 
 type Config struct {
-	Port         string
-	ReadTimeout  time.Duration
-	WriteTimeout time.Duration
-	IdleTimeout  time.Duration
+	AppName         string        `yaml:"app_name"`
+	Port            int           `yaml:"port"`
+	WriteTimeout    time.Duration `yaml:"write_timeout"`
+	ReadTimeout     time.Duration `yaml:"read_timeout"`
+	IdleTimeout     time.Duration `json:"idle_timeout"`
+	ShutdownTimeout time.Duration `yaml:"shutdown_timeout"`
 }
 
-type Server struct {
-	engine *gin.Engine
-	srv    *http.Server
+type HTTPServerComponent struct {
+	log        zerolog.Logger
+	cfg        Config
+	middleware middleware.Middleware
+	engine     *gin.Engine
+	httpServer *http.Server
 }
 
-func New(cfg Config) *Server {
-	gin.SetMode(gin.ReleaseMode)
-	engine := gin.New()
-	engine.Use(middleware.RequestIDMiddleware(), middleware.LoggingMiddleware(), middleware.RecoveryMiddleware())
+// NewHTTPServerComponent creates a new HTTP server component.
+// The engine and server are created during Start.
+func NewHTTPServerComponent(log zerolog.Logger, cfg Config, mw middleware.Middleware, gin *gin.Engine) *HTTPServerComponent {
+	return &HTTPServerComponent{
+		log:        log,
+		cfg:        cfg,
+		middleware: mw,
+		engine:     gin,
+	}
+}
 
-	srv := &http.Server{
-		Addr:         ":" + cfg.Port,
-		Handler:      engine,
-		ReadTimeout:  cfg.ReadTimeout,
-		WriteTimeout: cfg.WriteTimeout,
-		IdleTimeout:  cfg.IdleTimeout,
+// Start builds the Gin engine, applies middleware, and begins listening.
+// It blocks until ctx is done or the server fails to start.
+func (h *HTTPServerComponent) Start(ctx context.Context) error {
+	// Create HTTP server
+	addr := fmt.Sprintf(":%d", h.cfg.Port)
+	h.httpServer = &http.Server{
+		Addr:         addr,
+		Handler:      h.engine,
+		ReadTimeout:  h.cfg.ReadTimeout,
+		WriteTimeout: h.cfg.WriteTimeout,
+		IdleTimeout:  h.cfg.IdleTimeout,
 	}
 
-	return &Server{engine: engine, srv: srv}
-}
-
-func (s *Server) Engine() *gin.Engine { return s.engine }
-
-func (s *Server) Start() <-chan error {
-	errCh := make(chan error, 1)
+	// Channel to capture ListenAndServe errors
+	serveErr := make(chan error, 1)
 	go func() {
-		log.Info().Str("port", s.srv.Addr).Msg("HTTP server starting")
-		if err := s.srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			errCh <- err
+		h.log.Debug().Str("addr", addr).Msg("HTTP server starting")
+		if err := h.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			serveErr <- err
 		}
-		close(errCh)
 	}()
-	
-	return errCh
+
+	// Wait for shutdown signal or startup error
+	select {
+	case <-ctx.Done():
+		h.log.Debug().Msg("HTTP server context cancelled – stopping")
+		return nil
+	case err := <-serveErr:
+		return fmt.Errorf("HTTP server listen error: %w", err)
+	}
 }
 
-func (s *Server) Shutdown(ctx context.Context) error {
-	log.Info().Msg("Shutting down HTTP server")
-	return s.srv.Shutdown(ctx)
+// Stop gracefully shuts down the server with a timeout.
+func (h *HTTPServerComponent) Stop(ctx context.Context) error {
+	if h.httpServer == nil {
+		return nil
+	}
+
+	// Use the configured shutdown timeout
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), h.cfg.ShutdownTimeout)
+	defer cancel()
+
+	h.log.Debug().Msg("Shutting down HTTP server gracefully")
+	if err := h.httpServer.Shutdown(shutdownCtx); err != nil {
+		return fmt.Errorf("HTTP server shutdown error: %w", err)
+	}
+
+	h.log.Debug().Msg("HTTP server stopped")
+	return nil
+}
+
+// Engine returns the Gin engine (useful for tests or if other components need to add routes after start).
+func (h *HTTPServerComponent) Engine() *gin.Engine {
+	return h.engine
 }

@@ -2,40 +2,74 @@ package query
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"text/template"
 
-	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog"
 )
 
 type Config struct {
-	Path string
+	Path string `yaml:"path"`
 }
 
-type QueryLoader struct {
-	queries  map[string]string
-	filePath string
+type QueryComponent struct {
+	log     zerolog.Logger
+	cfg     Config
+	queries map[string]string
 }
 
-func New(cfg Config) *QueryLoader {
-	queryPath := fmt.Sprintf("%s/user_queries.sql", cfg.Path)
-	ql := &QueryLoader{
-		queries:  make(map[string]string),
-		filePath: queryPath,
+// NewQueryComponent creates a new component but does not load queries yet.
+func NewQueryComponent(log zerolog.Logger, cfg Config) *QueryComponent {
+	return &QueryComponent{
+		log:     log,
+		cfg:     cfg,
+		queries: make(map[string]string),
+	}
+}
+
+// Start loads all .sql files from the configured directory, parses them,
+// and then blocks until the context is cancelled.
+// It returns an error if no files are found or if any file cannot be read.
+func (qc *QueryComponent) Start(ctx context.Context) error {
+	// Find all .sql files in the directory
+	files, err := filepath.Glob(filepath.Join(qc.cfg.Path, "*.sql"))
+	if err != nil {
+		return fmt.Errorf("failed to glob SQL files: %w", err)
 	}
 
-	return ql
+	if len(files) == 0 {
+		return fmt.Errorf("no SQL files found in path: %s", qc.cfg.Path)
+	}
+
+	// Load each file
+	for _, file := range files {
+		if err := qc.loadFile(file); err != nil {
+			return fmt.Errorf("failed to load file %s: %w", file, err)
+		}
+	}
+
+	qc.log.Debug().Msgf("Queries loaded successfully, total queries: %d", len(qc.queries))
+
+	// Block until shutdown signal
+	<-ctx.Done()
+
+	qc.log.Debug().Msg("Query component context cancelled – stopping")
+	return nil
 }
 
-func (ql *QueryLoader) Load() error {
-	data, err := os.ReadFile(ql.filePath)
+// loadFile reads a single SQL file and adds its named queries to the map.
+func (qc *QueryComponent) loadFile(filePath string) error {
+	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return err
 	}
 
 	content := string(data)
+	// Split by "-- name:" markers (your existing format)
 	sections := strings.SplitSeq(content, "-- name:")
 
 	for section := range sections {
@@ -53,22 +87,29 @@ func (ql *QueryLoader) Load() error {
 		query = strings.TrimSpace(query)
 		query = strings.TrimSuffix(query, ";")
 
-		ql.queries[name] = query
+		qc.queries[name] = query
 	}
 
-	log.Debug().Msg("Queries loaded successfully, total queries: " + fmt.Sprint(len(ql.queries)))
-
+	qc.log.Debug().Str("file", filepath.Base(filePath)).Msg("Loaded queries from file")
 	return nil
 }
 
-func (ql *QueryLoader) Get(name string) (string, bool) {
-	query, ok := ql.queries[name]
+// Stop performs any necessary cleanup. For this component, nothing is required.
+func (qc *QueryComponent) Stop(ctx context.Context) error {
+	qc.log.Debug().Msg("Query component stopped")
+	return nil
+}
 
+// Get returns a query by its name and a boolean indicating if it exists.
+func (qc *QueryComponent) Get(name string) (string, bool) {
+	query, ok := qc.queries[name]
 	return query, ok
 }
 
-func (ql *QueryLoader) ExecuteTemplate(name string, data any) (string, []any, error) {
-	queryTemplate, ok := ql.Get(name)
+// ExecuteTemplate processes a named query with the given data,
+// converting named placeholders ($key) to positional parameters ($1, $2, …).
+func (qc *QueryComponent) ExecuteTemplate(name string, data any) (string, []any, error) {
+	queryTemplate, ok := qc.Get(name)
 	if !ok {
 		return "", nil, fmt.Errorf("query %s not found", name)
 	}
@@ -84,24 +125,22 @@ func (ql *QueryLoader) ExecuteTemplate(name string, data any) (string, []any, er
 	}
 
 	query := buf.String()
-
-	// Convert named parameters to positional
 	return convertNamedToPositional(query, data)
 }
 
+// convertNamedToPositional replaces $key placeholders with $1, $2, … and builds the args slice.
+// It expects data to be a map[string]any.
 func convertNamedToPositional(query string, data any) (string, []any, error) {
-	args := make([]any, 0)
-	paramMap := make(map[string]any)
-
-	// Extract parameters from data
-	if dataMap, ok := data.(map[string]any); ok {
-		paramMap = dataMap
+	paramMap, ok := data.(map[string]any)
+	if !ok {
+		return "", nil, fmt.Errorf("data must be map[string]any for named parameter conversion")
 	}
 
-	// Replace named parameters with $1, $2, etc.
+	args := make([]any, 0)
 	paramIndex := 1
 	result := query
 
+	// Replace each $key with $N and collect values in order
 	for key, value := range paramMap {
 		placeholder := "$" + key
 		if strings.Contains(result, placeholder) {
@@ -113,9 +152,4 @@ func convertNamedToPositional(query string, data any) (string, []any, error) {
 	}
 
 	return result, args, nil
-}
-
-func (ql *QueryLoader) Clear() error {
-	ql.queries = make(map[string]string)
-	return nil
 }

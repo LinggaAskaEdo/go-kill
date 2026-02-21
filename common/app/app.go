@@ -45,7 +45,7 @@ func New(opts ...Option) *App {
 }
 
 // Add registers components with optional per-component shutdown timeout.
-func (a *App) Add(comp Component, opts ...interface{}) {
+func (a *App) Add(comp Component, opts ...any) {
 	wrapper := componentWrapper{Component: comp}
 	// Options can be used to set per-component timeout, etc.
 	for _, opt := range opts {

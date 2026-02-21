@@ -3,37 +3,65 @@ package logger
 import (
 	"io"
 	"os"
+	"strconv"
+	"sync"
 	"time"
 
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/pkgerrors"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
+var onceLogger = sync.Once{}
+
 type Config struct {
-	Level       string
-	PrettyPrint bool
-	Output      io.Writer // for testing
+	Enabled    bool   `yaml:"enabled"`
+	Level      string `yaml:"level"`
+	Format     string `yaml:"format"`
+	Output     string `yaml:"output"`
+	Path       string `yaml:"path"`
+	MaxSize    int    `yaml:"max_size"`
+	MaxBackups int    `yaml:"max_backups"`
+	MaxAge     int    `yaml:"max_age"`
+	Compress   bool   `yaml:"compress"`
 }
 
-func New(cfg Config) (zerolog.Logger, error) {
-	level, err := zerolog.ParseLevel(cfg.Level)
-	if err != nil {
-		return zerolog.Nop(), err
-	}
-	zerolog.SetGlobalLevel(level) // still set global level for libraries
+func Init(cfg Config) zerolog.Logger {
+	var log zerolog.Logger
 
-	out := cfg.Output
-	if out == nil {
-		out = os.Stderr
-	}
+	onceLogger.Do(func() {
+		zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
+		zerolog.TimeFieldFormat = time.RFC3339
 
-	var logger zerolog.Logger
-	if cfg.PrettyPrint {
-		logger = zerolog.New(zerolog.ConsoleWriter{Out: out, TimeFormat: time.RFC3339})
-	} else {
-		logger = zerolog.New(out)
-	}
+		logLevel, err := strconv.Atoi(os.Getenv("LOG_LEVEL"))
+		if err != nil {
+			logLevel = int(zerolog.DebugLevel)
+		}
 
-	logger = logger.With().Timestamp().Logger()
+		var output io.Writer = zerolog.ConsoleWriter{
+			Out:        os.Stdout,
+			TimeFormat: time.RFC3339,
+		}
 
-	return logger, nil
+		if cfg.Enabled {
+			fileLogger := &lumberjack.Logger{
+				Filename:   cfg.Path,
+				MaxSize:    cfg.MaxSize,
+				MaxBackups: cfg.MaxBackups,
+				MaxAge:     cfg.MaxAge,
+				Compress:   cfg.Compress,
+			}
+
+			output = zerolog.MultiLevelWriter(os.Stderr, fileLogger)
+		}
+
+		log = zerolog.New(output).
+			Level(zerolog.Level(logLevel)).
+			With().
+			Timestamp().
+			Caller().
+			Logger()
+	})
+
+	return log
 }

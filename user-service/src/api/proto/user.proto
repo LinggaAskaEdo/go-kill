@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+package user;
+
+option go_package = "github.com/linggaaskaedo/go-kill/user-service/src/api/proto;proto";
+
+service UserService {
+  rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
+  rpc GetUser(GetUserRequest) returns (GetUserResponse);
+  rpc GetAddress(GetAddressRequest) returns (GetAddressResponse);
+  rpc LogActivity(LogActivityRequest) returns (LogActivityResponse);
+}
+
+message CreateUserRequest {
+  string auth_id = 1;
+  string email = 2;
+  string first_name = 3;
+  string last_name = 4;
+}
+
+message CreateUserResponse {
+  string user_id = 1;
+  bool success = 2;
+  string error = 3;
+}
+
+message GetUserRequest {
+  string user_id = 1;
+}
+
+message GetUserResponse {
+  string id = 1;
+  string email = 2;
+  string first_name = 3;
+  string last_name = 4;
+  bool found = 5;
+}
+
+message GetAddressRequest {
+  string address_id = 1;
+  string user_id = 2;
+}
+
+message GetAddressResponse {
+  string id = 1;
+  string user_id = 2;
+  string street_address = 3;
+  string city = 4;
+  string state = 5;
+  string postal_code = 6;
+  string country = 7;
+  bool found = 8;
+}
+
+message LogActivityRequest {
+  string user_id = 1;
+  string activity_type = 2;
+  map<string, string> metadata = 3;
+}
+
+message LogActivityResponse {
+  bool success = 1;
+}

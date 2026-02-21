@@ -1,9 +1,34 @@
 logger:
-  level: debug
-  pretty: true
+  enabled: true
+  level: info # debug, info, warn, error
+  format: json # json, console
+  output: stdout # stdout, file
+  path: ./logs/app.log
+  max_size: 100 # megabytes
+  max_backups: 7
+  max_age: 30 # days
+  compress: true # disabled by default
+
+redis:
+  enabled: true
+  network: tcp
+  address: "localhost:6379"
+  password: ""
+  cache_ttl: 60s
+  max_retries: 3
+  min_retry_backoff: 8ms
+  max_retry_backoff: 512ms
+  dial_timeout: 5s
+  read_timeout: 3s
+  write_timeout: 3s
+  pool_size: 10
+  min_idle_conns: 5
+  max_idle_conns: 5
+  max_active_conns: 10
+  pool_timeout: 30s
 
 database:
-  database-0:
+  db-0:
     enabled: true
     driver: postgres
     host: localhost
@@ -16,8 +41,31 @@ database:
 queries:
   path: ./etc/sql/
 
+scheduler:
+  enabled: false
+  jobs:
+    user_generator:
+      enabled: true
+      cron: "*/30 * * * * *" # Every 30 seconds
+      batch_size: 5
+      min_age: 18
+      max_age: 80
+
+grpc_client:
+  auth_service:
+    target: "localhost:50051"
+    timeout: 5s
+    insecure: true
+
+grpc_server:
+  port: ":8082"
+  shutdown_timeout: 10s
+
+http:
+  app_name: "User Service"
+
 server:
-  port: 8080
+  port: 8083
   read_timeout: 5s
   write_timeout: 10s
   idle_timeout: 120s

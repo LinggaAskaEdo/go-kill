@@ -9,6 +9,8 @@ clean: ## Clean build artifacts
 	@echo "Cleaning..."
 	@rm -rf ./bin/
 	@rm -f coverage.out coverage.html
+	@find ./src/api/proto -type f ! -name "*.proto" -exec rm -f {} \;
+	@find ./src/api/proto -type d -empty -delete
 	@echo "Clean complete"
 
 update: ## Update dependencies
@@ -45,7 +47,13 @@ swagger: ## Generate swagger documentation
 	@rm -f ./docs/docs.go.bak 2>/dev/null || true
 	@echo "Swagger docs generated and fixed successfully"
 
-build: clean update check swagger ## Build the application
+proto: ## Generate protobuf files
+	@echo "Generating protobuf files..."
+	@cd src/api/proto && protoc --go_out=. --go-grpc_out=. --go_opt=paths=source_relative --go-grpc_opt=paths=source_relative \
+	       auth.proto user.proto
+	@echo "Protobuf files generated successfully"
+
+build: clean proto update check swagger ## Build the application
 	@echo "Building application..."
 	@go mod tidy
 	@go generate ./src/cmd
@@ -67,6 +75,8 @@ install-tools: ## Install development tools
 	@go install github.com/swaggo/swag/cmd/swag@latest
 	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 	@go install github.com/pressly/goose/v3/cmd/goose@latest
+	@go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+	@go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 	@echo "Tools installed"
 
 sql-postgres-create: ## Create SQL migration files for postgres
