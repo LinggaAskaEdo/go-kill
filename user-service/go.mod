@@ -2,13 +2,11 @@ module github.com/linggaaskaedo/go-kill/user-service
 
 go 1.25.7
 
-replace github.com/linggaaskaedo/go-kill/common => ../common
-
 require (
 	github.com/gin-gonic/gin v1.11.0
 	github.com/goccy/go-yaml v1.19.2
 	github.com/jmoiron/sqlx v1.4.0
-	// github.com/linggaaskaedo/go-kill/common v0.0.3
+	github.com/linggaaskaedo/go-kill/common v1.0.0
 	github.com/swaggo/swag v1.16.6
 )
 
@@ -19,6 +17,7 @@ require (
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
+	github.com/palantir/stacktrace v0.0.0-20161112013806-78658fd2d177 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/redis/go-redis/v9 v9.18.0 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
@@ -61,7 +60,6 @@ require (
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/lib/pq v1.11.2 // indirect
-	github.com/linggaaskaedo/go-kill/common v0.0.3
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
