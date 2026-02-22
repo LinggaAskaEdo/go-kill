@@ -44,8 +44,8 @@ func (mw *middleware) Handler() gin.HandlerFunc {
 
 			mw.log.Info().
 				Str(preference.EVENT, "START").
-				// Str("trace_id", traceID).
-				// Str("span_id", spanID).
+				Str("trace_id", traceID).
+				Str("span_id", spanID).
 				Str(preference.METHOD, c.Request.Method).
 				Str(preference.URL, path).
 				Str(preference.USER_AGENT, c.Request.UserAgent()).
@@ -69,8 +69,8 @@ func (mw *middleware) Handler() gin.HandlerFunc {
 
 			mw.log.Info().
 				Str(preference.EVENT, "END").
-				// Str("trace_id", traceID).
-				// Str("span_id", spanID).
+				Str("trace_id", traceID).
+				Str("span_id", spanID).
 				Str(preference.LATENCY, param.Latency.String()).
 				Int(preference.STATUS, param.StatusCode).
 				Send()
