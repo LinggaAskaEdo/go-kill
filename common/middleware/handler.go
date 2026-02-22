@@ -46,6 +46,7 @@ func (mw *middleware) Handler() gin.HandlerFunc {
 				Str(preference.EVENT, "START").
 				Str("trace_id", traceID).
 				Str("span_id", spanID).
+				Str("req_id", reqID).
 				Str(preference.METHOD, c.Request.Method).
 				Str(preference.URL, path).
 				Str(preference.USER_AGENT, c.Request.UserAgent()).
@@ -71,6 +72,7 @@ func (mw *middleware) Handler() gin.HandlerFunc {
 				Str(preference.EVENT, "END").
 				Str("trace_id", traceID).
 				Str("span_id", spanID).
+				Str("req_id", reqID).
 				Str(preference.LATENCY, param.Latency.String()).
 				Int(preference.STATUS, param.StatusCode).
 				Send()
@@ -103,7 +105,7 @@ func (mw *middleware) attachLogger(ctx context.Context) context.Context {
 }
 
 func (mw *middleware) getRequestID(c *gin.Context) string {
-	if id, exists := c.Get("requestID"); exists {
+	if id, exists := c.Get(preference.CONTEXT_KEY_LOG_REQ_ID); exists {
 		return id.(string)
 	}
 
