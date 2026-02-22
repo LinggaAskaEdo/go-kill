@@ -32,8 +32,8 @@ func (mw *middleware) Handler() gin.HandlerFunc {
 				spanID = xid.New().String()
 			}
 
-			// ctx = mw.attachReqID(ctx, reqID)
-			ctx = mw.attachTraceSpanIDs(ctx, traceID, spanID)
+			ctx = mw.attachTraceSpanIDs(ctx, traceID, spanID, reqID)
+			ctx = mw.attachAddrAgent(ctx, c.Request.Host, c.Request.UserAgent())
 			ctx = mw.attachLogger(ctx)
 
 			c.Header(preference.REQUEST_ID, spanID)
@@ -78,9 +78,17 @@ func (mw *middleware) Handler() gin.HandlerFunc {
 	}
 }
 
-func (mw *middleware) attachTraceSpanIDs(ctx context.Context, traceID, spanID string) context.Context {
+func (mw *middleware) attachTraceSpanIDs(ctx context.Context, traceID, spanID, reqID string) context.Context {
 	ctx = context.WithValue(ctx, preference.CONTEXT_KEY_LOG_TRACE_ID, traceID)
 	ctx = context.WithValue(ctx, preference.CONTEXT_KEY_LOG_SPAN_ID, spanID)
+	ctx = context.WithValue(ctx, preference.CONTEXT_KEY_LOG_REQ_ID, reqID)
+
+	return ctx
+}
+
+func (mw *middleware) attachAddrAgent(ctx context.Context, host, agent string) context.Context {
+	ctx = context.WithValue(ctx, preference.ADDR, host)
+	ctx = context.WithValue(ctx, preference.USER_AGENT, agent)
 
 	return ctx
 }
@@ -89,6 +97,7 @@ func (mw *middleware) attachLogger(ctx context.Context) context.Context {
 	return mw.log.With().
 		Str(string(preference.CONTEXT_KEY_LOG_TRACE_ID), ctx.Value(preference.CONTEXT_KEY_LOG_TRACE_ID).(string)).
 		Str(string(preference.CONTEXT_KEY_LOG_SPAN_ID), ctx.Value(preference.CONTEXT_KEY_LOG_SPAN_ID).(string)).
+		Str(string(preference.CONTEXT_KEY_LOG_REQ_ID), ctx.Value(preference.CONTEXT_KEY_LOG_REQ_ID).(string)).
 		Logger().
 		WithContext(ctx)
 }

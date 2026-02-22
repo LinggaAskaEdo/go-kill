@@ -21,6 +21,7 @@ const (
 	// CONTEXT_KEY_LOG_REQUEST_ID contextKey = "req_id"
 	CONTEXT_KEY_LOG_TRACE_ID contextKey = "trace_id"
 	CONTEXT_KEY_LOG_SPAN_ID  contextKey = "span_id"
+	CONTEXT_KEY_LOG_REQ_ID   contextKey = "req_id"
 	EVENT                    string     = "event"
 	METHOD                   string     = "method"
 	URL                      string     = "url"
