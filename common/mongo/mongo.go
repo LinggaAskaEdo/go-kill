@@ -5,9 +5,9 @@ import (
 	"fmt"
 
 	"github.com/rs/zerolog"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
 )
 
 type Config struct {
@@ -38,7 +38,7 @@ func (m *MongoDBComponent) Start(ctx context.Context) error {
 	uri := fmt.Sprintf("mongodb://%s:%s", m.cfg.Host, m.cfg.Port)
 	clientOpts := options.Client().ApplyURI(uri)
 
-	client, err := mongo.Connect(ctx, clientOpts)
+	client, err := mongo.Connect(clientOpts)
 	if err != nil {
 		return fmt.Errorf("mongo connect: %w", err)
 	}

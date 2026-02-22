@@ -104,7 +104,23 @@ func (mw *middleware) attachLogger(ctx context.Context) context.Context {
 		WithContext(ctx)
 }
 
-func (mw *middleware) getRequestID(c *gin.Context) string {
+func (mw *middleware) getTraceID(c *gin.Context) string {
+	if id, exists := c.Get(preference.CONTEXT_KEY_LOG_TRACE_ID); exists {
+		return id.(string)
+	}
+
+	return ""
+}
+
+func (mw *middleware) getSpanID(c *gin.Context) string {
+	if id, exists := c.Get(preference.CONTEXT_KEY_LOG_SPAN_ID); exists {
+		return id.(string)
+	}
+
+	return ""
+}
+
+func (mw *middleware) getReqID(c *gin.Context) string {
 	if id, exists := c.Get(preference.CONTEXT_KEY_LOG_REQ_ID); exists {
 		return id.(string)
 	}
