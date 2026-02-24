@@ -30,14 +30,25 @@ func GetCtxKeyVal(c *gin.Context, key preference.CtxKey) string {
 	return ""
 }
 
-func WithReqID(ctx context.Context, key preference.CtxKey, id string) context.Context {
+// func WithReqID(ctx context.Context, key preference.CtxKey, id string) context.Context {
+// 	return context.WithValue(ctx, key, id)
+// }
+
+// func GetReqID(ctx context.Context, key preference.CtxKey) string {
+// 	if id, ok := ctx.Value(key).(string); ok {
+// 		return id
+// 	}
+
+// 	return ""
+// }
+
+func WithCorrelationID(ctx context.Context, key preference.CtxKey, id string) context.Context {
 	return context.WithValue(ctx, key, id)
 }
 
-func GetReqID(ctx context.Context, key preference.CtxKey) string {
+func GetCorrelationID(ctx context.Context, key preference.CtxKey) string {
 	if id, ok := ctx.Value(key).(string); ok {
 		return id
 	}
-
 	return ""
 }
