@@ -32,32 +32,38 @@ type Job interface {
 	Run(ctx context.Context) error
 }
 
+type JobProvider func() ([]Job, error)
+
 type SchedulerComponent struct {
-	log  zerolog.Logger
-	cron *cron.Cron
-	jobs []Job
-	mu   sync.RWMutex
+	log         zerolog.Logger
+	cron        *cron.Cron
+	jobProvider JobProvider
+	jobs        []Job
+	ready       chan struct{}
+	mu          sync.RWMutex
 }
 
 // NewSchedulerComponent creates a new scheduler component, registers all provided jobs,
 // and returns nil if the scheduler is disabled.
-func NewSchedulerComponent(log zerolog.Logger, cfg Config, jobs []Job) *SchedulerComponent {
+func NewSchedulerComponent(log zerolog.Logger, cfg Config, jobProvider JobProvider) *SchedulerComponent {
 	if !cfg.Enabled {
 		return nil
 	}
 
 	sc := &SchedulerComponent{
-		log:  log,
-		cron: cron.New(cron.WithSeconds()),
-		jobs: make([]Job, 0),
+		log:         log,
+		cron:        cron.New(cron.WithSeconds()),
+		jobProvider: jobProvider,
+		jobs:        make([]Job, 0),
+		ready:       make(chan struct{}),
 	}
 
-	// Register each job
-	for _, job := range jobs {
-		if err := sc.addJob(job); err != nil {
-			log.Warn().Err(err).Str("job", job.Name()).Msg("Failed to register job, skipping")
-		}
-	}
+	// // Register each job
+	// for _, job := range jobs {
+	// 	if err := sc.addJob(job); err != nil {
+	// 		log.Warn().Err(err).Str("job", job.Name()).Msg("Failed to register job, skipping")
+	// 	}
+	// }
 
 	return sc
 }
@@ -89,16 +95,36 @@ func (sc *SchedulerComponent) addJob(job Job) error {
 
 // Start begins the cron scheduler and blocks until the context is cancelled.
 func (sc *SchedulerComponent) Start(ctx context.Context) error {
-	sc.mu.RLock()
+	// sc.mu.RLock()
+	// sc.cron.Start()
+	// sc.mu.RUnlock()
+
+	// sc.log.Debug().Msgf("Scheduler started, jobs registered: %d", len(sc.jobs))
+	// close(sc.ready) // signal readiness
+	// <-ctx.Done()    // Block until shutdown signal
+	// sc.log.Debug().Msg("Scheduler component context cancelled – stopping")
+
+	// return nil
+
+	// Get jobs from provider (now we can wait for dependencies)
+	jobs, err := sc.jobProvider()
+	if err != nil {
+		return fmt.Errorf("job provider failed: %w", err)
+	}
+
+	// Register each job
+	for _, job := range jobs {
+		if err := sc.addJob(job); err != nil {
+			sc.log.Warn().Err(err).Str("job", job.Name()).Msg("Failed to register job, skipping")
+		}
+	}
+
 	sc.cron.Start()
-	sc.mu.RUnlock()
-
+	close(sc.ready) // signal readiness
 	sc.log.Debug().Msgf("Scheduler started, jobs registered: %d", len(sc.jobs))
-
-	// Block until shutdown signal
-	<-ctx.Done()
-
+	<-ctx.Done() // Block until shutdown signal
 	sc.log.Debug().Msg("Scheduler component context cancelled – stopping")
+
 	return nil
 }
 
@@ -131,4 +157,9 @@ func (sc *SchedulerComponent) ListJobs() []string {
 	}
 
 	return jobNames
+}
+
+// Ready returns a channel that is closed when the connection is established.
+func (sc *SchedulerComponent) Ready() <-chan struct{} {
+	return sc.ready
 }

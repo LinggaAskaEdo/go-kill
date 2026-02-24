@@ -12,6 +12,8 @@ import (
 	"github.com/rs/zerolog"
 )
 
+type Engine = gin.Engine
+
 type Config struct {
 	AppName         string        `yaml:"app_name"`
 	Port            int           `yaml:"port"`
@@ -22,27 +24,36 @@ type Config struct {
 }
 
 type HTTPServerComponent struct {
-	log        zerolog.Logger
-	cfg        Config
-	middleware middleware.Middleware
-	engine     *gin.Engine
-	httpServer *http.Server
+	log            zerolog.Logger
+	cfg            Config
+	middleware     middleware.Middleware
+	engine         *gin.Engine
+	routeRegistrar func(*Engine)
+	ready          chan struct{}
+	httpServer     *http.Server
 }
 
 // NewHTTPServerComponent creates a new HTTP server component.
 // The engine and server are created during Start.
-func NewHTTPServerComponent(log zerolog.Logger, cfg Config, mw middleware.Middleware, gin *gin.Engine) *HTTPServerComponent {
+func NewHTTPServerComponent(log zerolog.Logger, cfg Config, mw middleware.Middleware, gin *gin.Engine, routeRegistrar func(*Engine)) *HTTPServerComponent {
 	return &HTTPServerComponent{
-		log:        log,
-		cfg:        cfg,
-		middleware: mw,
-		engine:     gin,
+		log:            log,
+		cfg:            cfg,
+		middleware:     mw,
+		engine:         gin,
+		routeRegistrar: routeRegistrar,
+		ready:          make(chan struct{}),
 	}
 }
 
 // Start builds the Gin engine, applies middleware, and begins listening.
 // It blocks until ctx is done or the server fails to start.
 func (h *HTTPServerComponent) Start(ctx context.Context) error {
+	// Register service‑specific routes
+	if h.routeRegistrar != nil {
+		h.routeRegistrar(h.engine)
+	}
+
 	// Create HTTP server
 	addr := fmt.Sprintf(":%d", h.cfg.Port)
 	h.httpServer = &http.Server{
@@ -62,6 +73,9 @@ func (h *HTTPServerComponent) Start(ctx context.Context) error {
 		}
 	}()
 
+	close(h.ready) // signal readiness
+	h.log.Debug().Msg("HTTP server started")
+
 	// Wait for shutdown signal or startup error
 	select {
 	case <-ctx.Done():
@@ -74,6 +88,7 @@ func (h *HTTPServerComponent) Start(ctx context.Context) error {
 
 // Stop gracefully shuts down the server with a timeout.
 func (h *HTTPServerComponent) Stop(ctx context.Context) error {
+	h.log.Debug().Msg("Starting shut down HTTP server")
 	if h.httpServer == nil {
 		return nil
 	}
@@ -94,4 +109,9 @@ func (h *HTTPServerComponent) Stop(ctx context.Context) error {
 // Engine returns the Gin engine (useful for tests or if other components need to add routes after start).
 func (h *HTTPServerComponent) Engine() *gin.Engine {
 	return h.engine
+}
+
+// Ready returns a channel that is closed when the connection is established.
+func (h *HTTPServerComponent) Ready() <-chan struct{} {
+	return h.ready
 }

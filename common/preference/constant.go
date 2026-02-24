@@ -1,6 +1,6 @@
 package preference
 
-type contextKey string
+type CtxKey string
 
 const (
 	// Respnose Status
@@ -17,18 +17,23 @@ const (
 	REDIS_AUTH    string = "AUTH"
 
 	// Logging Context Keys
-	// CONTEXT_KEY_REQUEST_ID     contextKey = "requestID"
-	// CONTEXT_KEY_LOG_REQUEST_ID contextKey = "req_id"
-	CONTEXT_KEY_LOG_TRACE_ID contextKey = "trace_id"
-	CONTEXT_KEY_LOG_SPAN_ID  contextKey = "span_id"
-	CONTEXT_KEY_LOG_REQ_ID   contextKey = "req_id"
-	EVENT                    string     = "event"
-	METHOD                   string     = "method"
-	URL                      string     = "url"
-	ADDR                     string     = "addr"
-	STATUS                   string     = "status_code"
-	LATENCY                  string     = "latency"
-	USER_AGENT               string     = "user_agent"
+	CONTEXT_KEY_TRACE_ID   CtxKey = "trace_id"
+	CONTEXT_KEY_SPAN_ID    CtxKey = "span_id"
+	CONTEXT_KEY_REQ_ID     CtxKey = "req_id"
+	CONTEXT_KEY_ADDR       CtxKey = "addr"
+	CONTEXT_KEY_USER_AGENT CtxKey = "user_agent"
+
+	TRACE_ID string = "trace_id"
+	SPAN_ID  string = "span_id"
+	REQ_ID   string = "req_id"
+
+	EVENT      string = "event"
+	METHOD     string = "method"
+	URL        string = "url"
+	ADDR       string = "addr"
+	STATUS     string = "status_code"
+	LATENCY    string = "latency"
+	USER_AGENT string = "user_agent"
 
 	// Lang Header
 	LANG_EN string = `en`

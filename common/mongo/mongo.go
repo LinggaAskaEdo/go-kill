@@ -11,15 +11,15 @@ import (
 )
 
 type Config struct {
-	Host     string `yaml:"host"`     // e.g., "localhost"
-	Port     string `yaml:"port"`     // e.g., "27017"
-	Database string `yaml:"database"` // database name, e.g., "user_db"
-	// You may add more options like auth, TLS, etc.
+	Host     string `yaml:"host"`
+	Port     string `yaml:"port"`
+	Database string `yaml:"database"`
 }
 
 type MongoDBComponent struct {
 	log    zerolog.Logger
 	cfg    Config
+	ready  chan struct{}
 	client *mongo.Client
 	db     *mongo.Database
 }
@@ -27,8 +27,9 @@ type MongoDBComponent struct {
 // NewMongoDBComponent creates a new MongoDB component.
 func NewMongoDBComponent(log zerolog.Logger, cfg Config) *MongoDBComponent {
 	return &MongoDBComponent{
-		log: log,
-		cfg: cfg,
+		log:   log,
+		cfg:   cfg,
+		ready: make(chan struct{}),
 	}
 }
 
@@ -51,11 +52,9 @@ func (m *MongoDBComponent) Start(ctx context.Context) error {
 	m.client = client
 	m.db = client.Database(m.cfg.Database)
 
+	close(m.ready) // signal readiness
 	m.log.Debug().Str("uri", uri).Str("database", m.cfg.Database).Msg("MongoDB connected")
-
-	// Block until shutdown
-	<-ctx.Done()
-
+	<-ctx.Done() // Block until shutdown signal
 	m.log.Debug().Msg("MongoDB component context cancelled – stopping")
 
 	return nil
@@ -66,10 +65,13 @@ func (m *MongoDBComponent) Stop(ctx context.Context) error {
 	if m.client == nil {
 		return nil
 	}
+
 	if err := m.client.Disconnect(ctx); err != nil {
 		return fmt.Errorf("mongo disconnect: %w", err)
 	}
+
 	m.log.Debug().Msg("MongoDB disconnected")
+
 	return nil
 }
 
@@ -82,4 +84,9 @@ func (m *MongoDBComponent) Database() *mongo.Database {
 // Client returns the underlying mongo.Client.
 func (m *MongoDBComponent) Client() *mongo.Client {
 	return m.client
+}
+
+// Ready returns a channel that is closed when the connection is established.
+func (m *MongoDBComponent) Ready() <-chan struct{} {
+	return m.ready
 }

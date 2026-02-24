@@ -32,6 +32,7 @@ type RedisComponent struct {
 	log    zerolog.Logger
 	cfg    Config
 	db     int
+	ready  chan struct{}
 	client *redis.Client
 }
 
@@ -48,9 +49,10 @@ func NewRedisComponent(log zerolog.Logger, cfg Config, redisType string) *RedisC
 	}
 
 	return &RedisComponent{
-		log: log,
-		cfg: cfg,
-		db:  db,
+		log:   log,
+		cfg:   cfg,
+		db:    db,
+		ready: make(chan struct{}),
 	}
 }
 
@@ -82,13 +84,11 @@ func (r *RedisComponent) Start(ctx context.Context) error {
 		return fmt.Errorf("redis ping failed: %w", err)
 	}
 
+	close(r.ready) // signal readiness
 	r.log.Debug().Msg("Redis component started and ping successful")
-
-	// Block until the context is cancelled.
-	// This keeps the component "alive" from the errgroup's perspective.
-	<-ctx.Done()
-
+	<-ctx.Done() // Block until shutdown signal
 	r.log.Debug().Msg("Redis component context cancelled – stopping")
+
 	return nil
 }
 
@@ -113,4 +113,9 @@ func (r *RedisComponent) Stop(ctx context.Context) error {
 // It is safe to call only after Start has completed successfully.
 func (r *RedisComponent) Client() *redis.Client {
 	return r.client
+}
+
+// Ready returns a channel that is closed when the connection is established.
+func (r *RedisComponent) Ready() <-chan struct{} {
+	return r.ready
 }

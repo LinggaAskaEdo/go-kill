@@ -47,12 +47,14 @@ func New(opts ...Option) *App {
 // Add registers components with optional per-component shutdown timeout.
 func (a *App) Add(comp Component, opts ...any) {
 	wrapper := componentWrapper{Component: comp}
+
 	// Options can be used to set per-component timeout, etc.
 	for _, opt := range opts {
 		if to, ok := opt.(time.Duration); ok {
 			wrapper.shutdownTimeout = to
 		}
 	}
+
 	a.components = append(a.components, wrapper)
 }
 

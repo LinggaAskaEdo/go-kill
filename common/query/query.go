@@ -20,6 +20,7 @@ type QueryComponent struct {
 	log     zerolog.Logger
 	cfg     Config
 	queries map[string]string
+	ready   chan struct{}
 }
 
 // NewQueryComponent creates a new component but does not load queries yet.
@@ -28,6 +29,7 @@ func NewQueryComponent(log zerolog.Logger, cfg Config) *QueryComponent {
 		log:     log,
 		cfg:     cfg,
 		queries: make(map[string]string),
+		ready:   make(chan struct{}),
 	}
 }
 
@@ -52,12 +54,11 @@ func (qc *QueryComponent) Start(ctx context.Context) error {
 		}
 	}
 
+	close(qc.ready) // signal readiness
 	qc.log.Debug().Msgf("Queries loaded successfully, total queries: %d", len(qc.queries))
-
-	// Block until shutdown signal
-	<-ctx.Done()
-
+	<-ctx.Done() // Block until shutdown signal
 	qc.log.Debug().Msg("Query component context cancelled – stopping")
+
 	return nil
 }
 
@@ -152,4 +153,9 @@ func convertNamedToPositional(query string, data any) (string, []any, error) {
 	}
 
 	return result, args, nil
+}
+
+// Ready returns a channel that is closed when the connection is established.
+func (qc *QueryComponent) Ready() <-chan struct{} {
+	return qc.ready
 }

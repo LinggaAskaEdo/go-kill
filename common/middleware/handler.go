@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/linggaaskaedo/go-kill/common/correlation"
 	"github.com/linggaaskaedo/go-kill/common/preference"
 
 	"github.com/gin-gonic/gin"
@@ -29,14 +30,19 @@ func (mw *middleware) Handler() gin.HandlerFunc {
 
 			reqID := c.GetHeader(preference.REQUEST_ID)
 			if reqID == "" {
-				spanID = xid.New().String()
+				reqID = xid.New().String()
 			}
 
-			ctx = mw.attachTraceSpanIDs(ctx, traceID, spanID, reqID)
-			ctx = mw.attachAddrAgent(ctx, c.Request.Host, c.Request.UserAgent())
+			ctx = correlation.AttachKeyValCtx(ctx,
+				preference.CONTEXT_KEY_TRACE_ID, traceID,
+				preference.CONTEXT_KEY_SPAN_ID, spanID,
+				preference.CONTEXT_KEY_REQ_ID, reqID,
+				preference.CONTEXT_KEY_ADDR, c.Request.Host,
+				preference.CONTEXT_KEY_USER_AGENT, c.Request.UserAgent())
+				
 			ctx = mw.attachLogger(ctx)
 
-			c.Header(preference.REQUEST_ID, spanID)
+			c.Header(preference.REQUEST_ID, reqID)
 
 			if raw != "" {
 				path = path + "?" + raw
@@ -44,9 +50,9 @@ func (mw *middleware) Handler() gin.HandlerFunc {
 
 			mw.log.Info().
 				Str(preference.EVENT, "START").
-				Str("trace_id", traceID).
-				Str("span_id", spanID).
-				Str("req_id", reqID).
+				// Str(preference.TRACE_ID, traceID).
+				// Str(preference.SPAN_ID, spanID).
+				Str(preference.REQ_ID, reqID).
 				Str(preference.METHOD, c.Request.Method).
 				Str(preference.URL, path).
 				Str(preference.USER_AGENT, c.Request.UserAgent()).
@@ -70,9 +76,9 @@ func (mw *middleware) Handler() gin.HandlerFunc {
 
 			mw.log.Info().
 				Str(preference.EVENT, "END").
-				Str("trace_id", traceID).
-				Str("span_id", spanID).
-				Str("req_id", reqID).
+				// Str(preference.TRACE_ID, traceID).
+				// Str(preference.SPAN_ID, spanID).
+				Str(preference.REQ_ID, reqID).
 				Str(preference.LATENCY, param.Latency.String()).
 				Int(preference.STATUS, param.StatusCode).
 				Send()
@@ -80,50 +86,11 @@ func (mw *middleware) Handler() gin.HandlerFunc {
 	}
 }
 
-func (mw *middleware) attachTraceSpanIDs(ctx context.Context, traceID, spanID, reqID string) context.Context {
-	ctx = context.WithValue(ctx, preference.CONTEXT_KEY_LOG_TRACE_ID, traceID)
-	ctx = context.WithValue(ctx, preference.CONTEXT_KEY_LOG_SPAN_ID, spanID)
-	ctx = context.WithValue(ctx, preference.CONTEXT_KEY_LOG_REQ_ID, reqID)
-
-	return ctx
-}
-
-func (mw *middleware) attachAddrAgent(ctx context.Context, host, agent string) context.Context {
-	ctx = context.WithValue(ctx, preference.ADDR, host)
-	ctx = context.WithValue(ctx, preference.USER_AGENT, agent)
-
-	return ctx
-}
-
 func (mw *middleware) attachLogger(ctx context.Context) context.Context {
 	return mw.log.With().
-		Str(string(preference.CONTEXT_KEY_LOG_TRACE_ID), ctx.Value(preference.CONTEXT_KEY_LOG_TRACE_ID).(string)).
-		Str(string(preference.CONTEXT_KEY_LOG_SPAN_ID), ctx.Value(preference.CONTEXT_KEY_LOG_SPAN_ID).(string)).
-		Str(string(preference.CONTEXT_KEY_LOG_REQ_ID), ctx.Value(preference.CONTEXT_KEY_LOG_REQ_ID).(string)).
+		// Str(string(preference.CONTEXT_KEY_TRACE_ID), ctx.Value(preference.CONTEXT_KEY_TRACE_ID).(string)).
+		// Str(string(preference.CONTEXT_KEY_SPAN_ID), ctx.Value(preference.CONTEXT_KEY_SPAN_ID).(string)).
+		Str(string(preference.CONTEXT_KEY_REQ_ID), ctx.Value(preference.CONTEXT_KEY_REQ_ID).(string)).
 		Logger().
 		WithContext(ctx)
-}
-
-func (mw *middleware) getTraceID(c *gin.Context) string {
-	if id, exists := c.Get(preference.CONTEXT_KEY_LOG_TRACE_ID); exists {
-		return id.(string)
-	}
-
-	return ""
-}
-
-func (mw *middleware) getSpanID(c *gin.Context) string {
-	if id, exists := c.Get(preference.CONTEXT_KEY_LOG_SPAN_ID); exists {
-		return id.(string)
-	}
-
-	return ""
-}
-
-func (mw *middleware) getReqID(c *gin.Context) string {
-	if id, exists := c.Get(preference.CONTEXT_KEY_LOG_REQ_ID); exists {
-		return id.(string)
-	}
-
-	return ""
 }

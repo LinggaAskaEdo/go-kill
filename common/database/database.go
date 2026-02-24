@@ -29,9 +29,10 @@ type Config struct {
 }
 
 type DatabaseComponent struct {
-	log zerolog.Logger
-	cfg Config
-	db  *sqlx.DB
+	log   zerolog.Logger
+	cfg   Config
+	ready chan struct{}
+	db    *sqlx.DB
 }
 
 // NewDatabaseComponent creates a new database component but does not start it.
@@ -42,8 +43,9 @@ func NewDatabaseComponent(log zerolog.Logger, cfg Config) *DatabaseComponent {
 	}
 
 	return &DatabaseComponent{
-		log: log,
-		cfg: cfg,
+		log:   log,
+		cfg:   cfg,
+		ready: make(chan struct{}),
 	}
 }
 
@@ -69,12 +71,11 @@ func (d *DatabaseComponent) Start(ctx context.Context) error {
 	d.db.SetConnMaxLifetime(d.cfg.ConnMaxLifetime)
 	d.db.SetConnMaxIdleTime(d.cfg.ConnMaxIdleTime)
 
+	close(d.ready) // signal readiness
 	d.log.Debug().Msgf("%s database connected and ping OK", strings.ToUpper(d.cfg.Driver))
-
-	// Block until shutdown signal
-	<-ctx.Done()
-
+	<-ctx.Done() // Block until shutdown signal
 	d.log.Debug().Msgf("%s database context cancelled – stopping", strings.ToUpper(d.cfg.Driver))
+
 	return nil
 }
 
@@ -89,15 +90,10 @@ func (d *DatabaseComponent) Stop(ctx context.Context) error {
 	if err := d.db.Close(); err != nil {
 		return fmt.Errorf("close database: %w", err)
 	}
-	
-	d.log.Debug().Msgf("%s database stopped", strings.ToUpper(d.cfg.Driver))
-	return nil
-}
 
-// Client returns the underlying *sqlx.DB for use by other components.
-// It is safe to call only after Start has completed successfully.
-func (d *DatabaseComponent) Client() *sqlx.DB {
-	return d.db
+	d.log.Debug().Msgf("%s database stopped", strings.ToUpper(d.cfg.Driver))
+
+	return nil
 }
 
 // getURI constructs the driver name and connection string based on config.
@@ -125,4 +121,15 @@ func getURI(cfg Config) (string, string, error) {
 	default:
 		return "", "", errors.New("unsupported database driver: " + cfg.Driver)
 	}
+}
+
+// Client returns the underlying *sqlx.DB for use by other components.
+// It is safe to call only after Start has completed successfully.
+func (d *DatabaseComponent) Client() *sqlx.DB {
+	return d.db
+}
+
+// Ready returns a channel that is closed when the connection is established.
+func (d *DatabaseComponent) Ready() <-chan struct{} {
+	return d.ready
 }
