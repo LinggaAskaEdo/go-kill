@@ -47,7 +47,12 @@ func (s *GRPCServerComponent) Start(ctx context.Context) error {
 
 	s.log.Info().Str("port", s.cfg.Port).Msg("gRPC server listening")
 
-	grpcServer := grpc.NewServer(grpc.UnaryInterceptor(s.ReqIDServerInterceptor))
+	grpcServer := grpc.NewServer(
+		grpc.ChainUnaryInterceptor(
+			s.ReqIDServerInterceptor,
+			LoggingUnaryServerInterceptor(s.log),
+		))
+
 	for _, registrar := range s.registrars {
 		registrar(grpcServer)
 	}
