@@ -3,12 +3,10 @@ package grpc
 import (
 	"context"
 
-	authpb "github.com/linggaaskaedo/go-kill/user-service/src/api/proto"
-	userpb "github.com/linggaaskaedo/go-kill/user-service/src/api/proto"
+	authpb "github.com/linggaaskaedo/go-kill/common/pkg/proto/auth"
 )
 
-func (g *Grpc) CreateAuthUser(ctx context.Context, req *userpb.CreateAuthUserRequest) (*userpb.CreateAuthUserResponse, error) {
-	// Use the auth client
+func (g *Grpc) CreateAuthUser(ctx context.Context, req *authpb.CreateAuthUserRequest) (*authpb.CreateAuthUserResponse, error) {
 	authResp, err := g.authClient.CreateAuthUser(ctx, &authpb.CreateAuthUserRequest{
 		Email:    req.Email,
 		Password: req.Password,
@@ -17,5 +15,7 @@ func (g *Grpc) CreateAuthUser(ctx context.Context, req *userpb.CreateAuthUserReq
 		return nil, err
 	}
 
-	return &userpb.CreateAuthUserResponse{AuthId: authResp.AuthId}, nil
+	return &authpb.CreateAuthUserResponse{
+		AuthId: authResp.AuthId,
+	}, nil
 }

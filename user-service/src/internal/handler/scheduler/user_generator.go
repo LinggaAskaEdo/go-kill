@@ -5,7 +5,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/linggaaskaedo/go-kill/common/scheduler"
+	"github.com/linggaaskaedo/go-kill/common/component/scheduler"
 	"github.com/linggaaskaedo/go-kill/user-service/src/internal/service/user"
 
 	"github.com/rs/zerolog"

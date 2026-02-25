@@ -6,7 +6,7 @@
     "swagger": "2.0",
     "info": {
         "description": "Microservices Architecture with Go",
-        "title": "Go-Kill",
+        "title": "Go-Kill x User Service",
         "termsOfService": "http://swagger.io/terms/",
         "contact": {
             "name": "API Support",

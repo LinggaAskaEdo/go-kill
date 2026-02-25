@@ -41,6 +41,12 @@ database:
 queries:
   path: ./etc/sql/
 
+mongo:
+  mongo-0:
+    host: localhost
+    port: 27017
+    database: "go-kill"
+
 scheduler:
   enabled: false
   jobs:
@@ -53,7 +59,7 @@ scheduler:
 
 grpc_client:
   auth_service:
-    target: "localhost:50051"
+    target: "localhost:8081"
     timeout: 5s
     insecure: true
 

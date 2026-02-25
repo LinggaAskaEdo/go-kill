@@ -3,15 +3,16 @@ package config
 import (
 	"os"
 
-	"github.com/linggaaskaedo/go-kill/common/database"
-	"github.com/linggaaskaedo/go-kill/common/grpcclient"
-	"github.com/linggaaskaedo/go-kill/common/grpcserver"
-	"github.com/linggaaskaedo/go-kill/common/http"
-	"github.com/linggaaskaedo/go-kill/common/logger"
-	"github.com/linggaaskaedo/go-kill/common/query"
-	"github.com/linggaaskaedo/go-kill/common/redis"
-	"github.com/linggaaskaedo/go-kill/common/scheduler"
-	"github.com/linggaaskaedo/go-kill/common/server"
+	"github.com/linggaaskaedo/go-kill/common/component/database"
+	"github.com/linggaaskaedo/go-kill/common/component/grpcclient"
+	"github.com/linggaaskaedo/go-kill/common/component/grpcserver"
+	"github.com/linggaaskaedo/go-kill/common/component/http"
+	"github.com/linggaaskaedo/go-kill/common/component/mongo"
+	"github.com/linggaaskaedo/go-kill/common/component/query"
+	"github.com/linggaaskaedo/go-kill/common/component/redis"
+	"github.com/linggaaskaedo/go-kill/common/component/scheduler"
+	"github.com/linggaaskaedo/go-kill/common/component/server"
+	"github.com/linggaaskaedo/go-kill/common/pkg/logger"
 
 	"github.com/goccy/go-yaml"
 )
@@ -21,6 +22,7 @@ type Config struct {
 	Redis      redis.Config                 `yaml:"redis"`
 	Database   map[string]database.Config   `yaml:"database"`
 	Query      query.Config                 `yaml:"queries"`
+	Mongo      map[string]mongo.Config      `yaml:"mongo"`
 	Scheduler  scheduler.Config             `yaml:"scheduler"`
 	GRPCClient map[string]grpcclient.Config `yaml:"grpc_client"`
 	GRPCServer grpcserver.Config            `yaml:"grpc_server"`

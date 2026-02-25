@@ -32,7 +32,7 @@ var SwaggerInfo = &swag.Spec{
 	Host:             "localhost:8080",
 	BasePath:         "",
 	Schemes:          []string{"http", "https"},
-	Title:            "Go-Kill",
+	Title:            "Go-Kill x User Service",
 	Description:      "Microservices Architecture with Go",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,

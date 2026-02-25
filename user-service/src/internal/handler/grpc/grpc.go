@@ -1,8 +1,8 @@
 package grpc
 
 import (
-	authpb "github.com/linggaaskaedo/go-kill/user-service/src/api/proto"
-	userpb "github.com/linggaaskaedo/go-kill/user-service/src/api/proto"
+	authpb "github.com/linggaaskaedo/go-kill/common/pkg/proto/auth"
+	userpb "github.com/linggaaskaedo/go-kill/common/pkg/proto/user"
 )
 
 type Grpc struct {
@@ -10,7 +10,7 @@ type Grpc struct {
 	authClient authpb.AuthServiceClient
 }
 
-func IniGrpcHandler(authClient authpb.AuthServiceClient) *Grpc {
+func InitGrpcHandler(authClient authpb.AuthServiceClient) *Grpc {
 	return &Grpc{
 		authClient: authClient,
 	}

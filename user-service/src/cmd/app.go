@@ -5,24 +5,20 @@ import (
 	"time"
 
 	"github.com/linggaaskaedo/go-kill/common/app"
-	"github.com/linggaaskaedo/go-kill/common/database"
-	"github.com/linggaaskaedo/go-kill/common/grpcclient"
-	"github.com/linggaaskaedo/go-kill/common/grpcserver"
-	"github.com/linggaaskaedo/go-kill/common/http"
-	"github.com/linggaaskaedo/go-kill/common/logger"
-	"github.com/linggaaskaedo/go-kill/common/middleware"
-	"github.com/linggaaskaedo/go-kill/common/query"
-	"github.com/linggaaskaedo/go-kill/common/redis"
-	"github.com/linggaaskaedo/go-kill/common/scheduler"
-	"github.com/linggaaskaedo/go-kill/common/server"
-	authpb "github.com/linggaaskaedo/go-kill/user-service/src/api/proto"
-	userpb "github.com/linggaaskaedo/go-kill/user-service/src/api/proto"
+	"github.com/linggaaskaedo/go-kill/common/component/database"
+	"github.com/linggaaskaedo/go-kill/common/component/grpcclient"
+	"github.com/linggaaskaedo/go-kill/common/component/grpcserver"
+	"github.com/linggaaskaedo/go-kill/common/component/http"
+	"github.com/linggaaskaedo/go-kill/common/component/mongo"
+	"github.com/linggaaskaedo/go-kill/common/component/query"
+	"github.com/linggaaskaedo/go-kill/common/component/scheduler"
+	"github.com/linggaaskaedo/go-kill/common/component/server"
+	"github.com/linggaaskaedo/go-kill/common/pkg/logger"
+	"github.com/linggaaskaedo/go-kill/common/pkg/middleware"
+	userpb "github.com/linggaaskaedo/go-kill/common/pkg/proto/user"
 	"github.com/linggaaskaedo/go-kill/user-service/src/internal/config"
-	grpcHandler "github.com/linggaaskaedo/go-kill/user-service/src/internal/handler/grpc"
 	restHandler "github.com/linggaaskaedo/go-kill/user-service/src/internal/handler/rest"
 	sched "github.com/linggaaskaedo/go-kill/user-service/src/internal/handler/scheduler"
-	"github.com/linggaaskaedo/go-kill/user-service/src/internal/repository"
-	"github.com/linggaaskaedo/go-kill/user-service/src/internal/service"
 
 	"google.golang.org/grpc"
 )
@@ -32,7 +28,7 @@ var (
 	maxJitter int
 )
 
-// @title			Go-Kill
+// @title			Go-Kill x User Service
 // @version		1.0
 // @description	Microservices Architecture with Go
 // @termsOfService	http://swagger.io/terms/
@@ -66,11 +62,7 @@ func main() {
 	// Create application with options
 	application := app.New(app.WithShutdownTimeout(15*time.Second), app.WithLogger(log))
 
-	// Initialize Redis Component
-	redisComp := redis.NewRedisComponent(log, cfg.Redis, "apps")
-	application.Add(redisComp, 10*time.Second)
-
-	// Initialize database components
+	// Initialize database component
 	dbComp0 := database.NewDatabaseComponent(log, cfg.Database["db-0"])
 	if dbComp0 != nil {
 		application.Add(dbComp0, 10*time.Second)
@@ -80,15 +72,25 @@ func main() {
 	queryComp := query.NewQueryComponent(log, cfg.Query)
 	application.Add(queryComp, 10*time.Second)
 
-	// Initialize dependencies
-	repository := repository.InitRepository(dbComp0.Client(), queryComp)
-	service := service.InitService(repository)
+	// Initialize mongo component
+	mongoComp0 := mongo.NewMongoDBComponent(log, cfg.Mongo["mongo-0"])
+	application.Add(mongoComp0, 10*time.Second)
+
+	// Initialize gRPC client components
+	authClientComp := grpcclient.NewGRPCClientComponent(log, cfg.GRPCClient["auth_service"])
+	application.Add(authClientComp, 10*time.Second)
+
+	// Initialize service component
+	serviceComp := config.NewServiceComponent(log, dbComp0, queryComp, mongoComp0, authClientComp)
+	application.Add(serviceComp, 10*time.Second)
 
 	// Initialize scheduler component
-	userGenJob := sched.NewUserGeneratorJob(log, service.User, cfg.Scheduler.SchedulerJobs.UserGeneratorJob)
-	jobs := []scheduler.Job{userGenJob}
+	schedComp := scheduler.NewSchedulerComponent(log, cfg.Scheduler, func() ([]scheduler.Job, error) {
+		<-serviceComp.Ready()
+		userGenJob := sched.NewUserGeneratorJob(log, serviceComp.Service().User, cfg.Scheduler.SchedulerJobs.UserGeneratorJob)
 
-	schedComp := scheduler.NewSchedulerComponent(log, cfg.Scheduler, jobs)
+		return []scheduler.Job{userGenJob}, nil
+	})
 	if schedComp != nil {
 		application.Add(schedComp, 10*time.Second)
 	}
@@ -99,44 +101,23 @@ func main() {
 	// Initialize Gin engine
 	gin := http.Init(log, mw, cfg.Http)
 
-	// Initialize gRPC client components
-	authClientComp := grpcclient.NewGRPCClientComponent(log, cfg.GRPCClient["auth_service"])
-	application.Add(authClientComp, 10*time.Second)
-
-	grpcHandler := grpcHandler.IniGrpcHandler(authpb.NewAuthServiceClient(authClientComp.Conn()))
-
-	userServerComp := grpcserver.NewGRPCServerComponent(log, cfg.GRPCServer, func(s *grpc.Server) {
-		userpb.RegisterUserServiceServer(s, grpcHandler)
+	// Initialize gRPC server component
+	grpcServerComp := grpcserver.NewGRPCServerComponent(log, cfg.GRPCServer, func(s *grpc.Server) {
+		select {
+		case <-serviceComp.Ready():
+			userpb.RegisterUserServiceServer(s, serviceComp.GrpcHandler())
+		case <-time.After(10 * time.Second):
+			log.Error().Msg("Timed out waiting for service component; gRPC server will have no services")
+		}
 	})
-	application.Add(userServerComp, 10*time.Second)
-
-	// Initialize REST handlers
-	restHandler.InitRestHandler(gin, service, grpcHandler)
+	application.Add(grpcServerComp, 10*time.Second)
 
 	// Initialize HTTP server component
-	serverComp := server.NewHTTPServerComponent(log, cfg.Server, mw, gin)
-	application.Add(serverComp, 10*time.Second)
-
-	// Connect to Auth Service
-	// const authServiceAddr = "localhost:50051"
-	// authConn, err := grpc.NewClient(authServiceAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	// authClient := authpb.NewAuthServiceClient(authConn)
-	// authClient.CreateAuthUser(context.Background(), &authpb.CreateAuthUserRequest{Email: "test@example.com", Password: "password"})
-
-	// go func() {
-	// 	lis, err := net.Listen("tcp", ":8082")
-	// 	if err != nil {
-	// 		log.Fatal().Err(err).Msg("Failed to listen on port 8082")
-	// 	}
-
-	// 	s := grpc.NewServer()
-	// 	userpb.RegisterUserServiceServer(s, userpb.UnimplementedUserServiceServer{})
-
-	// 	log.Println("User Service gRPC listening on :8082")
-	// 	if err := s.Serve(lis); err != nil {
-	// 		log.Fatal().Err(err).Msg("Failed to serve gRPC")
-	// 	}
-	// }()
+	httpServerComp := server.NewHTTPServerComponent(log, cfg.Server, mw, gin, func(engine *server.Engine) {
+		<-serviceComp.Ready()
+		restHandler.InitRestHandler(gin, serviceComp.Service(), serviceComp.GrpcHandler())
+	})
+	application.Add(httpServerComp, 10*time.Second)
 
 	// Run Server
 	if err := application.Run(); err != nil {

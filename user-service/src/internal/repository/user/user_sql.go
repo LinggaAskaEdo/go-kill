@@ -3,7 +3,7 @@ package user
 import (
 	"context"
 
-	x "github.com/linggaaskaedo/go-kill/common/errors"
+	x "github.com/linggaaskaedo/go-kill/common/pkg/errors"
 	"github.com/linggaaskaedo/go-kill/user-service/src/internal/model/entity"
 
 	"github.com/jmoiron/sqlx"
@@ -14,6 +14,7 @@ func (u *userRepository) registerUserSQL(ctx context.Context, tx *sqlx.Tx, user 
 	query, _ := u.queryLoader.Get("RegisterUser")
 	row := tx.QueryRowContext(ctx, query, user.AutdID, user.Email, user.FirstName, user.LastName).Scan(&user.ID)
 	if err := row; err != nil {
+		zerolog.Ctx(ctx).Error().Str("id", user.ID).Msg("register_user_sql")
 		return tx, user, x.Wrap(err, "register_user_sql")
 	}
 
@@ -21,8 +22,8 @@ func (u *userRepository) registerUserSQL(ctx context.Context, tx *sqlx.Tx, user 
 	result := tx.MustExecContext(ctx, query, user.ID)
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
-		zerolog.Ctx(ctx).Error().Str("id", user.ID).Msg("register_user_profile_err")
-		return tx, user, x.NewWithCode(x.CodeSQLCreate, "register_user_profile_err")
+		zerolog.Ctx(ctx).Error().Str("id", user.ID).Msg("register_user_profile_sql")
+		return tx, user, x.NewWithCode(x.CodeSQLCreate, "register_user_profile_sql")
 	}
 
 	return tx, user, nil
