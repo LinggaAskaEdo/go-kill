@@ -28,11 +28,7 @@ func (u *userRepository) RegisterUser(ctx context.Context, user *entity.User) (*
 		return user, x.Wrap(err, "commit_register_user")
 	}
 
-	u.logActivityMongo(ctx, user.ID, "registration", map[string]any{
-		"ip_address":          ctx.Value("ip").(string),
-		"user_agent":          ctx.Value("user_agent").(string),
-		"registration_method": "email",
-	})
+	_ = u.logActivityMongo(ctx, user.ID, "registration")
 
 	return user, nil
 }
