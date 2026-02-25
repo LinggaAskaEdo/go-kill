@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/linggaaskaedo/go-kill/common/middleware"
+	"github.com/linggaaskaedo/go-kill/common/pkg/middleware"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"

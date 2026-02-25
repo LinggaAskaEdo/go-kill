@@ -58,13 +58,6 @@ func NewSchedulerComponent(log zerolog.Logger, cfg Config, jobProvider JobProvid
 		ready:       make(chan struct{}),
 	}
 
-	// // Register each job
-	// for _, job := range jobs {
-	// 	if err := sc.addJob(job); err != nil {
-	// 		log.Warn().Err(err).Str("job", job.Name()).Msg("Failed to register job, skipping")
-	// 	}
-	// }
-
 	return sc
 }
 
@@ -95,17 +88,6 @@ func (sc *SchedulerComponent) addJob(job Job) error {
 
 // Start begins the cron scheduler and blocks until the context is cancelled.
 func (sc *SchedulerComponent) Start(ctx context.Context) error {
-	// sc.mu.RLock()
-	// sc.cron.Start()
-	// sc.mu.RUnlock()
-
-	// sc.log.Debug().Msgf("Scheduler started, jobs registered: %d", len(sc.jobs))
-	// close(sc.ready) // signal readiness
-	// <-ctx.Done()    // Block until shutdown signal
-	// sc.log.Debug().Msg("Scheduler component context cancelled – stopping")
-
-	// return nil
-
 	// Get jobs from provider (now we can wait for dependencies)
 	jobs, err := sc.jobProvider()
 	if err != nil {

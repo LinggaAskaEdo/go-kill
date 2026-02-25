@@ -5,7 +5,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/linggaaskaedo/go-kill/common/preference"
+	"github.com/linggaaskaedo/go-kill/common/pkg/preference"
+
 	"github.com/palantir/stacktrace"
 )
 

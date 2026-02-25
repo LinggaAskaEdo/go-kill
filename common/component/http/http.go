@@ -1,7 +1,7 @@
 package http
 
 import (
-	"github.com/linggaaskaedo/go-kill/common/middleware"
+	"github.com/linggaaskaedo/go-kill/common/pkg/middleware"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
@@ -18,10 +18,10 @@ func Init(log zerolog.Logger, middleware middleware.Middleware, cfg Config) *gin
 	gin.SetMode(gin.ReleaseMode)
 
 	router := gin.New()
+	router.Use(middleware.Recovery())
 	router.Use(otelgin.Middleware(cfg.AppName))
 	router.Use(middleware.Handler())
 	router.Use(middleware.CORS())
-	router.Use(middleware.Recovery())
 
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler, ginSwagger.DefaultModelsExpandDepth(-1)))
 

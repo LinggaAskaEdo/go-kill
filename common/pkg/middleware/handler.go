@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/linggaaskaedo/go-kill/common/correlation"
-	"github.com/linggaaskaedo/go-kill/common/preference"
+	"github.com/linggaaskaedo/go-kill/common/pkg/correlation"
+	"github.com/linggaaskaedo/go-kill/common/pkg/preference"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rs/xid"
@@ -39,7 +39,7 @@ func (mw *middleware) Handler() gin.HandlerFunc {
 				preference.CONTEXT_KEY_REQ_ID, reqID,
 				preference.CONTEXT_KEY_ADDR, c.Request.Host,
 				preference.CONTEXT_KEY_USER_AGENT, c.Request.UserAgent())
-				
+
 			ctx = mw.attachLogger(ctx)
 
 			c.Header(preference.REQUEST_ID, reqID)
