@@ -27,7 +27,6 @@ func (s *GRPCServerComponent) ReqIDServerInterceptor(ctx context.Context, req an
 	}
 
 	// Store in context
-	// ctx = correlation.WithReqID(ctx, preference.CONTEXT_KEY_REQ_ID, corrID)
 	ctx = correlation.WithReqID(ctx, preference.CONTEXT_KEY_REQ_ID, corrID)
 
 	// Enhance logger with correlation ID
