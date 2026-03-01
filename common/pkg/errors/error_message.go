@@ -35,9 +35,30 @@ var ErrorMessages = ErrorMessage{
 	CodeSQLRecordIsExpired:            ErrMsgBadRequest,
 	CodeSQLRecordDoesNotExist:         ErrMsgNotFound,
 	CodeSQLForeignKeyMissing:          ErrMsgISE,
+	CodeSQLTxRollback:                 ErrMsgISE,
+	CodeRequestIDIsNotMatch:           ErrMsgISE,
+	CodeSQLConflict:                   ErrMsgISE,
+	CodeSQLEmptyRow:                   ErrMsgISE,
+	CodeSQLTableNotExist:              ErrMsgISE,
+	CodeSQLQueryBuild:                 ErrMsgISE,
 
 	CodeTokenStillValid:        ErrMsgTokenStillValid,
 	CodeTokenRefreshStillValid: ErrMsgRefreshStillValid,
+
+	CodeCacheMarshal:         ErrMsgISE,
+	CodeCacheUnmarshal:       ErrMsgISE,
+	CodeCacheGetSimpleKey:    ErrMsgISE,
+	CodeCacheSetSimpleKey:    ErrMsgISE,
+	CodeCacheDeleteSimpleKey: ErrMsgISE,
+	CodeCacheGetHashKey:      ErrMsgISE,
+	CodeCacheSetHashKey:      ErrMsgISE,
+	CodeCacheDeleteHashKey:   ErrMsgISE,
+	CodeCacheSetExpiration:   ErrMsgISE,
+	CodeCacheDecode:          ErrMsgISE,
+	CodeCacheLockNotAcquired: ErrMsgISE,
+	CodeCacheLockFailed:      ErrMsgISE,
+	CodeCacheInvalidCastType: ErrMsgISE,
+	CodeCacheNotFound:        ErrMsgISE,
 }
 
 var (

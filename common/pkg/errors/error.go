@@ -94,6 +94,7 @@ func getCommonErrorMessage(code stacktrace.ErrorCode, lang string) (int, string,
 	if !ok {
 		return 0, "", false
 	}
+
 	return errMsg.StatusCode, selectLanguageMessage(errMsg, lang), true
 }
 
@@ -102,6 +103,7 @@ func selectLanguageMessage(msg Message, lang string) string {
 	if lang == preference.LANG_EN {
 		return msg.EN
 	}
+
 	return msg.ID
 }
 
@@ -116,7 +118,7 @@ func formatAnnotatedMessage(msg, errStr string) string {
 		// Extract first line (excluding the opening quote)
 		args = strings.TrimSpace(args[1:index])
 	}
-	// If neither pattern matches, args remains the full quoted string
 
+	// If neither pattern matches, args remains the full quoted string
 	return fmt.Sprintf(msg, args)
 }
