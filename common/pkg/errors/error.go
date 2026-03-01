@@ -26,9 +26,11 @@ func init() {
 func Compile(service ServiceType, err error, lang string, debugMode bool) (int, AppError) {
 	// Capture debug error string if requested
 	var debugErr *string
+
 	if debugMode {
 		if errStr := err.Error(); errStr != "" {
-			debugErr = &errStr
+			cleanErr := strings.ReplaceAll(errStr, "\n", " ")
+			debugErr = &cleanErr
 		}
 	}
 
