@@ -28,14 +28,14 @@ type HTTPServerComponent struct {
 	cfg            Config
 	middleware     middleware.Middleware
 	engine         *gin.Engine
-	routeRegistrar func(*Engine)
+	routeRegistrar func(context.Context, *gin.Engine) error
 	ready          chan struct{}
 	httpServer     *http.Server
 }
 
 // NewHTTPServerComponent creates a new HTTP server component.
 // The engine and server are created during Start.
-func NewHTTPServerComponent(log zerolog.Logger, cfg Config, mw middleware.Middleware, gin *gin.Engine, routeRegistrar func(*Engine)) *HTTPServerComponent {
+func NewHTTPServerComponent(log zerolog.Logger, cfg Config, mw middleware.Middleware, gin *gin.Engine, routeRegistrar func(context.Context, *gin.Engine) error) *HTTPServerComponent {
 	return &HTTPServerComponent{
 		log:            log,
 		cfg:            cfg,
@@ -49,12 +49,14 @@ func NewHTTPServerComponent(log zerolog.Logger, cfg Config, mw middleware.Middle
 // Start builds the Gin engine, applies middleware, and begins listening.
 // It blocks until ctx is done or the server fails to start.
 func (h *HTTPServerComponent) Start(ctx context.Context) error {
-	// Register service‑specific routes
+	// 1. Wait for dependencies via the registrar (which should be context‑aware). The registrar is called synchronously and can block, but it must respect ctx.
 	if h.routeRegistrar != nil {
-		h.routeRegistrar(h.engine)
+		if err := h.routeRegistrar(ctx, h.engine); err != nil {
+			return err // registration failed (e.g., timeout, cancellation)
+		}
 	}
 
-	// Create HTTP server
+	// 2. Create HTTP server
 	addr := fmt.Sprintf(":%d", h.cfg.Port)
 	h.httpServer = &http.Server{
 		Addr:         addr,
@@ -64,7 +66,7 @@ func (h *HTTPServerComponent) Start(ctx context.Context) error {
 		IdleTimeout:  h.cfg.IdleTimeout,
 	}
 
-	// Channel to capture ListenAndServe errors
+	// 3. Channel for ListenAndServe errors
 	serveErr := make(chan error, 1)
 	go func() {
 		h.log.Debug().Str("addr", addr).Msg("HTTP server starting")
@@ -73,10 +75,10 @@ func (h *HTTPServerComponent) Start(ctx context.Context) error {
 		}
 	}()
 
-	close(h.ready) // signal readiness
-	h.log.Debug().Msg("HTTP server started")
+	// 4. Signal readiness (for other components that may depend on this server)
+	close(h.ready)
 
-	// Wait for shutdown signal or startup error
+	// 5. Wait for shutdown signal or server error
 	select {
 	case <-ctx.Done():
 		h.log.Debug().Msg("HTTP server context cancelled – stopping")

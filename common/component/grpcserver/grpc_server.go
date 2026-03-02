@@ -37,31 +37,40 @@ func NewGRPCServerComponent(log zerolog.Logger, cfg Config, registrar func(conte
 // Start creates the listener, registers services, and begins serving.
 // It blocks until the context is cancelled or the server fails.
 func (s *GRPCServerComponent) Start(ctx context.Context) error {
+	// 1. Create listener (non‑blocking, but we'll close it on cancellation).
 	lis, err := net.Listen("tcp", s.cfg.Port)
 	if err != nil {
 		return fmt.Errorf("failed to listen on %s: %w", s.cfg.Port, err)
 	}
 	s.lis = lis
 
+	// 2. Ensure listener is closed if context is cancelled before we finish.
+	go func() {
+		<-ctx.Done()
+		if err := lis.Close(); err != nil {
+			panic(err)
+		}
+	}()
+
 	s.log.Info().Str("port", s.cfg.Port).Msg("gRPC server listening")
 
+	// 3. Create server with interceptors.
 	grpcServer := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
 			s.ReqIDServerInterceptor,
 			LoggingUnaryServerInterceptor(s.log),
 		))
-	if err := s.registrar(ctx, grpcServer); err != nil {
-		// Registration failed (e.g., timeout, cancelled)
-		err = lis.Close()
-		if err != nil {
-			return fmt.Errorf("failed closing listener: %w", err)
-		}
 
-		return err
+	// 4. Run the (possibly blocking) registrar with context.
+	if err := s.registrar(ctx, grpcServer); err != nil {
+		// Registration failed – close listener and return error.
+		lis.Close()
+		return fmt.Errorf("registrar failed: %w", err)
 	}
 
 	s.server = grpcServer
 
+	// 5. Channel for Serve errors.
 	serveErr := make(chan error, 1)
 	go func() {
 		s.log.Debug().Str("port", s.cfg.Port).Msg("gRPC server starting")
@@ -70,14 +79,13 @@ func (s *GRPCServerComponent) Start(ctx context.Context) error {
 		}
 	}()
 
-	close(s.ready) // signal readiness
-	s.log.Debug().Msg("gRPC server connected")
+	// 6. Signal readiness.
+	close(s.ready)
 
-	// Wait for shutdown signal or serve error
+	// 7. Wait for shutdown or serve error.
 	select {
 	case <-ctx.Done():
 		s.log.Debug().Msg("gRPC server context cancelled – stopping")
-
 		return nil
 	case err := <-serveErr:
 		return fmt.Errorf("gRPC server serve error: %w", err)
