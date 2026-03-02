@@ -6,8 +6,10 @@ import (
 	"github.com/linggaaskaedo/go-kill/common/component/database"
 	"github.com/linggaaskaedo/go-kill/common/component/grpcclient"
 	"github.com/linggaaskaedo/go-kill/common/component/grpcserver"
+	"github.com/linggaaskaedo/go-kill/common/component/http"
 	"github.com/linggaaskaedo/go-kill/common/component/query"
 	"github.com/linggaaskaedo/go-kill/common/component/redis"
+	"github.com/linggaaskaedo/go-kill/common/component/server"
 	"github.com/linggaaskaedo/go-kill/common/pkg/logger"
 
 	"github.com/goccy/go-yaml"
@@ -20,6 +22,8 @@ type Config struct {
 	Query      query.Config                 `yaml:"queries"`
 	GRPCClient map[string]grpcclient.Config `yaml:"grpc_client"`
 	GRPCServer grpcserver.Config            `yaml:"grpc_server"`
+	Http       http.Config                  `yaml:"http"`
+	Server     server.Config                `yaml:"server"`
 }
 
 func Load(configPath string) (*Config, error) {

@@ -8,6 +8,7 @@ all: build run ## Execute all steps `clean update check swagger build run`
 clean: ## Clean build artifacts
 	@echo "Cleaning..."
 	@rm -rf ./bin/
+	@rm -rf ./logs/
 	@rm -f coverage.out coverage.html
 	@echo "Clean complete"
 

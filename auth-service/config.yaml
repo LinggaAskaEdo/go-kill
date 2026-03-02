@@ -44,3 +44,12 @@ queries:
 grpc_server:
   port: ":8081"
   shutdown_timeout: 10s
+
+http:
+  app_name: "Auth Service"
+
+server:
+  port: 8080
+  read_timeout: 5s
+  write_timeout: 10s
+  idle_timeout: 120s
