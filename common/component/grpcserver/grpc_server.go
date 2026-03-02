@@ -15,24 +15,22 @@ type Config struct {
 	ShutdownTimeout time.Duration `yaml:"shutdown_timeout"`
 }
 
-type ServiceRegistrar func(*grpc.Server)
-
 type GRPCServerComponent struct {
-	log        zerolog.Logger
-	cfg        Config
-	registrars []ServiceRegistrar
-	ready      chan struct{}
-	server     *grpc.Server
-	lis        net.Listener
+	log       zerolog.Logger
+	cfg       Config
+	registrar func(context.Context, *grpc.Server) error
+	ready     chan struct{}
+	server    *grpc.Server
+	lis       net.Listener
 }
 
 // NewGRPCServerComponent creates a new server component with the given service registrars.
-func NewGRPCServerComponent(log zerolog.Logger, cfg Config, registrars ...ServiceRegistrar) *GRPCServerComponent {
+func NewGRPCServerComponent(log zerolog.Logger, cfg Config, registrar func(context.Context, *grpc.Server) error) *GRPCServerComponent {
 	return &GRPCServerComponent{
-		log:        log,
-		cfg:        cfg,
-		registrars: registrars,
-		ready:      make(chan struct{}),
+		log:       log,
+		cfg:       cfg,
+		registrar: registrar,
+		ready:     make(chan struct{}),
 	}
 }
 
@@ -52,9 +50,14 @@ func (s *GRPCServerComponent) Start(ctx context.Context) error {
 			s.ReqIDServerInterceptor,
 			LoggingUnaryServerInterceptor(s.log),
 		))
+	if err := s.registrar(ctx, grpcServer); err != nil {
+		// Registration failed (e.g., timeout, cancelled)
+		err = lis.Close()
+		if err != nil {
+			return fmt.Errorf("failed closing listener: %w", err)
+		}
 
-	for _, registrar := range s.registrars {
-		registrar(grpcServer)
+		return err
 	}
 
 	s.server = grpcServer
