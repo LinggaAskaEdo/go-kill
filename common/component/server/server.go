@@ -88,21 +88,22 @@ func (h *HTTPServerComponent) Start(ctx context.Context) error {
 
 // Stop gracefully shuts down the server with a timeout.
 func (h *HTTPServerComponent) Stop(ctx context.Context) error {
-	h.log.Debug().Msg("Starting shut down HTTP server")
+	h.log.Debug().Msg("HTTPServerComponent.Stop: starting")
 	if h.httpServer == nil {
+		h.log.Debug().Msg("HTTPServerComponent.Stop: server nil, returning")
 		return nil
 	}
 
-	// Use the configured shutdown timeout
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), h.cfg.ShutdownTimeout)
 	defer cancel()
 
-	h.log.Debug().Msg("Shutting down HTTP server gracefully")
+	h.log.Debug().Msg("HTTPServerComponent.Stop: calling Shutdown")
 	if err := h.httpServer.Shutdown(shutdownCtx); err != nil {
-		return fmt.Errorf("HTTP server shutdown error: %w", err)
+		h.log.Error().Err(err).Msg("HTTPServerComponent.Stop: Shutdown error")
+		return err
 	}
 
-	h.log.Debug().Msg("HTTP server stopped")
+	h.log.Debug().Msg("HTTPServerComponent.Stop: Shutdown completed successfully")
 	return nil
 }
 

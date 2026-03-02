@@ -65,7 +65,7 @@ func (s *GRPCServerComponent) Start(ctx context.Context) error {
 	serveErr := make(chan error, 1)
 	go func() {
 		s.log.Debug().Str("port", s.cfg.Port).Msg("gRPC server starting")
-		if err := grpcServer.Serve(lis); err != nil {
+		if err := grpcServer.Serve(lis); err != nil && err != grpc.ErrServerStopped {
 			serveErr <- err
 		}
 	}()
@@ -86,31 +86,30 @@ func (s *GRPCServerComponent) Start(ctx context.Context) error {
 
 // Stop gracefully stops the server, waiting for ongoing requests to finish.
 func (s *GRPCServerComponent) Stop(ctx context.Context) error {
-	s.log.Debug().Msg("Starting shut down gRPC server")
+	s.log.Debug().Msg("GRPCServerComponent.Stop: starting")
 	if s.server == nil {
+		s.log.Debug().Msg("GRPCServerComponent.Stop: server nil, returning")
 		return nil
 	}
 
-	// Use a separate context for the graceful stop deadline
 	stopCtx, cancel := context.WithTimeout(context.Background(), s.cfg.ShutdownTimeout)
 	defer cancel()
 
-	s.log.Debug().Msg("Shutting down gRPC server gracefully")
-	stopped := make(chan struct{})
+	s.log.Debug().Msg("GRPCServerComponent.Stop: calling GracefulStop")
+	done := make(chan struct{})
 	go func() {
 		s.server.GracefulStop()
-		close(stopped)
+		close(done)
 	}()
 
 	select {
-	case <-stopped:
-		s.log.Debug().Msg("gRPC server stopped gracefully")
+	case <-done:
+		s.log.Debug().Msg("GRPCServerComponent.Stop: GracefulStop completed")
 		return nil
 	case <-stopCtx.Done():
-		s.log.Debug().Msg("Timeout shutting down gRPC server, forcing Stop")
-		s.server.Stop() // force stop
-
-		return fmt.Errorf("gRPC server shutdown timed out, forced stop")
+		s.log.Debug().Msg("GRPCServerComponent.Stop: timeout, forcing Stop")
+		s.server.Stop()
+		return fmt.Errorf("shutdown timed out")
 	}
 }
 
