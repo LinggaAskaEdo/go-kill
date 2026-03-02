@@ -2,6 +2,7 @@ package dto
 
 import (
 	x "github.com/linggaaskaedo/go-kill/common/pkg/errors"
+	"github.com/linggaaskaedo/go-kill/user-service/src/internal/model/entity"
 )
 
 type Meta struct {
@@ -21,4 +22,27 @@ type HttpSuccessResp struct {
 
 type HTTPErrorResp struct {
 	Meta Meta `json:"metadata"`
+}
+
+type UserResp struct {
+	ID        string `json:"id"  extensions:"x-order=0"`
+	Email     string `json:"email"  extensions:"x-order=1"`
+	FirstName string `json:"first_name"  extensions:"x-order=2"`
+	LastName  string `json:"last_name"  extensions:"x-order=3"`
+}
+
+type UserRegResp struct {
+	ID        string `json:"id"`
+	AutdID    string `json:"auth_id"`
+	Email     string `json:"email"`
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
+	CreatedAt string `json:"created_at"`
+	UpdatedAt string `json:"updated_at"`
+}
+
+type UserActivity struct {
+	Success    bool                  `json:"success"`
+	Data       []entity.UserActivity `json:"data"`
+	Pagination Pagination            `json:"pagination"`
 }

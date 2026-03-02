@@ -6,3 +6,8 @@ RETURNING id;
 -- name: RegisterUserProfile
 INSERT INTO user_profiles (user_id, created_at, updated_at)
 VALUES ($1, NOW(), NOW());
+
+-- name: GetUserByID
+SELECT id, email, first_name, last_name 
+FROM users 
+WHERE id = $1;

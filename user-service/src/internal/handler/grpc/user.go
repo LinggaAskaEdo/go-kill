@@ -7,7 +7,7 @@ import (
 )
 
 func (g *Grpc) CreateAuthUser(ctx context.Context, req *authpb.CreateAuthUserRequest) (*authpb.CreateAuthUserResponse, error) {
-	authResp, err := g.authClient.CreateAuthUser(ctx, &authpb.CreateAuthUserRequest{
+	resp, err := g.authClient.CreateAuthUser(ctx, &authpb.CreateAuthUserRequest{
 		Email:    req.Email,
 		Password: req.Password,
 	})
@@ -15,7 +15,16 @@ func (g *Grpc) CreateAuthUser(ctx context.Context, req *authpb.CreateAuthUserReq
 		return nil, err
 	}
 
-	return &authpb.CreateAuthUserResponse{
-		AuthId: authResp.AuthId,
-	}, nil
+	return resp, nil
+}
+
+func (g *Grpc) ValidateToken(ctx context.Context, req *authpb.ValidateTokenRequest) (*authpb.ValidateTokenResponse, error) {
+	resp, err := g.authClient.ValidateToken(ctx, &authpb.ValidateTokenRequest{
+		Token: req.Token,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
 }

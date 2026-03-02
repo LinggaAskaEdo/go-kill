@@ -12,6 +12,8 @@ import (
 
 type UserRepositoryItf interface {
 	RegisterUser(ctx context.Context, user *entity.User) (*entity.User, error)
+	GetMe(ctx context.Context, userID string) (*entity.User, error)
+	GetActivities(ctx context.Context, userID string, page string, limit string) ([]entity.UserActivity, int64, error)
 }
 
 type userRepository struct {

@@ -32,3 +32,11 @@ func (u *userRepository) RegisterUser(ctx context.Context, user *entity.User) (*
 
 	return user, nil
 }
+
+func (u *userRepository) GetMe(ctx context.Context, userID string) (*entity.User, error) {
+	return u.getUserByIDSQL(ctx, userID)
+}
+
+func (u *userRepository) GetActivities(ctx context.Context, userID string, page string, limit string) ([]entity.UserActivity, int64, error) {
+	return u.getUserActivitiesMongo(ctx, userID, page, limit)
+}

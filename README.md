@@ -257,7 +257,7 @@ A distributed microservices architecture built with GoLang implementing:
 ```sql
 -- users_auth table
 CREATE TABLE users_auth (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT uuidv7(),
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     is_active BOOLEAN DEFAULT true,
@@ -269,7 +269,7 @@ CREATE INDEX idx_users_auth_email ON users_auth(email);
 
 -- refresh_tokens table
 CREATE TABLE refresh_tokens (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT uuidv7(),
     user_id UUID NOT NULL REFERENCES users_auth(id),
     token_hash VARCHAR(255) NOT NULL,
     expires_at TIMESTAMP NOT NULL,
@@ -296,7 +296,7 @@ CREATE TABLE users (
 
 -- user_profiles table (One-to-One)
 CREATE TABLE user_profiles (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT uuidv7(),
     user_id UUID UNIQUE NOT NULL,
     phone VARCHAR(20),
     date_of_birth DATE,
@@ -309,7 +309,7 @@ CREATE TABLE user_profiles (
 
 -- user_addresses table (One-to-Many)
 CREATE TABLE user_addresses (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT uuidv7(),
     user_id UUID NOT NULL,
     address_type VARCHAR(20) CHECK (address_type IN ('shipping', 'billing', 'both')),
     street_address VARCHAR(255) NOT NULL,
@@ -331,7 +331,7 @@ CREATE INDEX idx_user_addresses_user_id ON user_addresses(user_id);
 ```sql
 -- products table
 CREATE TABLE products (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT uuidv7(),
     name VARCHAR(255) NOT NULL,
     description TEXT,
     price DECIMAL(10, 2) NOT NULL,
@@ -343,7 +343,7 @@ CREATE TABLE products (
 
 -- categories table
 CREATE TABLE categories (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT uuidv7(),
     name VARCHAR(100) NOT NULL,
     slug VARCHAR(100) UNIQUE NOT NULL,
     parent_id UUID,
@@ -367,7 +367,7 @@ CREATE INDEX idx_product_categories_category_id ON product_categories(category_i
 
 -- inventory table
 CREATE TABLE inventory (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT uuidv7(),
     product_id UUID UNIQUE NOT NULL,
     quantity INT NOT NULL DEFAULT 0,
     reserved_quantity INT NOT NULL DEFAULT 0,
@@ -625,7 +625,7 @@ Client → User Service → Auth Service → PostgreSQL → Redis → User Servi
 
      ```sql
      INSERT INTO users (id, auth_id, email, first_name, last_name, created_at, updated_at)
-     VALUES (gen_random_uuid(), '550e8400-e29b-41d4-a716-446655440000',
+     VALUES (uuidv7(), '550e8400-e29b-41d4-a716-446655440000',
              'user@example.com', 'John', 'Doe', NOW(), NOW())
      RETURNING id;
      ```
@@ -639,7 +639,7 @@ Client → User Service → Auth Service → PostgreSQL → Redis → User Servi
 
      ```sql
      INSERT INTO user_profiles (id, user_id, created_at, updated_at)
-     VALUES (gen_random_uuid(), '660e8400-e29b-41d4-a716-446655440000',
+     VALUES (uuidv7(), '660e8400-e29b-41d4-a716-446655440000',
              NOW(), NOW());
      ```
 
@@ -790,7 +790,7 @@ Client → Auth Service → PostgreSQL → Redis → Client
 
      ```sql
      INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at, created_at)
-     VALUES (gen_random_uuid(), '550e8400-e29b-41d4-a716-446655440000',
+     VALUES (uuidv7(), '550e8400-e29b-41d4-a716-446655440000',
              'hashed_refresh_token', NOW() + INTERVAL '7 days', NOW())
      RETURNING id;
      ```

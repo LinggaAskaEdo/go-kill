@@ -16,18 +16,43 @@ func (e *rest) handleRegister(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		zerolog.Ctx(ctx).Error().Err(err).Msg("invalid_request_body")
-		// c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		e.httpRespError(c, x.WrapWithCode(err, x.CodeHTTPUnmarshal, "invalid_request_body"))
 		return
 	}
 
-	user, err := e.svc.User.RegisterUser(c.Request.Context(), req, e.grpc)
+	resp, err := e.svc.User.RegisterUser(c.Request.Context(), req, e.grpc)
 	if err != nil {
-		// c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		e.httpRespError(c, x.WrapWithCode(err, x.CodeHTTPInternalServerError, "invalid_request_body"))
+		e.httpRespError(c, err)
 		return
 	}
 
-	// c.JSON(http.StatusOK, user)
-	e.httpRespSuccess(c, http.StatusCreated, user, nil)
+	e.httpRespSuccess(c, http.StatusCreated, resp, nil)
+}
+
+func (e *rest) handleGetMe(c *gin.Context) {
+	ctx := c.Request.Context()
+	userID := c.GetString("user_id")
+
+	resp, err := e.svc.User.GetMe(ctx, userID)
+	if err != nil {
+		e.httpRespError(c, err)
+		return
+	}
+
+	e.httpRespSuccess(c, http.StatusOK, resp, nil)
+}
+
+func (e *rest) handleGetActivities(c *gin.Context) {
+	ctx := c.Request.Context()
+	userID := c.GetString("user_id")
+	page := c.DefaultQuery("page", "1")
+	limit := c.DefaultQuery("limit", "20")
+
+	resp, err := e.svc.User.GetActivities(ctx, userID, page, limit)
+	if err != nil {
+		e.httpRespError(c, err)
+		return
+	}
+
+	e.httpRespSuccess(c, http.StatusOK, resp, nil)
 }

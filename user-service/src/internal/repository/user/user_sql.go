@@ -15,7 +15,7 @@ func (u *userRepository) registerUserSQL(ctx context.Context, tx *sqlx.Tx, user 
 	row := tx.QueryRowContext(ctx, query, user.AutdID, user.Email, user.FirstName, user.LastName).Scan(&user.ID)
 	if err := row; err != nil {
 		zerolog.Ctx(ctx).Error().Str("id", user.ID).Msg("register_user_sql")
-		return tx, user, x.Wrap(err, "register_user_sql")
+		return tx, nil, x.Wrap(err, "register_user_sql")
 	}
 
 	query, _ = u.queryLoader.Get("RegisterUserProfile")
@@ -23,8 +23,21 @@ func (u *userRepository) registerUserSQL(ctx context.Context, tx *sqlx.Tx, user 
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
 		zerolog.Ctx(ctx).Error().Str("id", user.ID).Msg("register_user_profile_sql")
-		return tx, user, x.NewWithCode(x.CodeSQLCreate, "register_user_profile_sql")
+		return tx, nil, x.NewWithCode(x.CodeSQLCreate, "register_user_profile_sql")
 	}
 
 	return tx, user, nil
+}
+
+func (u *userRepository) getUserByIDSQL(ctx context.Context, userID string) (*entity.User, error) {
+	var user *entity.User
+
+	query, _ := u.queryLoader.Get("GetUserByID")
+	err := u.db0.QueryRowContext(ctx, query, userID).Scan(&user)
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("get_user_by_id_sql")
+		return nil, x.WrapWithCode(err, x.CodeSQLRowScan, "get_user_by_id_sql")
+	}
+
+	return user, nil
 }
