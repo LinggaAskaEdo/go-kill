@@ -2,15 +2,30 @@ package user
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/lib/pq"
 	x "github.com/linggaaskaedo/go-kill/common/pkg/errors"
+	userpb "github.com/linggaaskaedo/go-kill/common/pkg/proto/user"
 	"github.com/linggaaskaedo/go-kill/user-service/src/internal/model/dto"
 	"github.com/linggaaskaedo/go-kill/user-service/src/internal/model/entity"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog"
 )
+
+func (u *userRepository) createUserSQL(ctx context.Context, req *userpb.CreateUserRequest) (string, error) {
+	var userID string
+
+	query, _ := u.queryLoader.Get("RegisterUser")
+	err := u.db0.QueryRowContext(ctx, query, req.AuthId, req.Email, req.FirstName, req.LastName).Scan(&userID)
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("create_user_sql")
+		return "", x.WrapWithCode(err, x.CodeSQLCreate, "create_user_sql")
+	}
+
+	return userID, nil
+}
 
 func (u *userRepository) registerUserSQL(ctx context.Context, tx *sqlx.Tx, user *entity.User) (*sqlx.Tx, *entity.User, error) {
 	query, _ := u.queryLoader.Get("RegisterUser")
@@ -20,15 +35,19 @@ func (u *userRepository) registerUserSQL(ctx context.Context, tx *sqlx.Tx, user 
 		return tx, nil, x.Wrap(err, "register_user_sql")
 	}
 
-	query, _ = u.queryLoader.Get("RegisterUserProfile")
-	result := tx.MustExecContext(ctx, query, user.ID)
+	return tx, user, nil
+}
+
+func (u *userRepository) registerUserProfileSQL(ctx context.Context, tx *sqlx.Tx, userID string) (*sqlx.Tx, error) {
+	query, _ := u.queryLoader.Get("RegisterUserProfile")
+	result := tx.MustExecContext(ctx, query, userID)
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
-		zerolog.Ctx(ctx).Error().Str("id", user.ID).Msg("register_user_profile_sql")
-		return tx, nil, x.NewWithCode(x.CodeSQLCreate, "register_user_profile_sql")
+		zerolog.Ctx(ctx).Error().Str("id", userID).Msg("register_user_profile_sql")
+		return tx, x.NewWithCode(x.CodeSQLCreate, "register_user_profile_sql")
 	}
 
-	return tx, user, nil
+	return tx, nil
 }
 
 func (u *userRepository) getUserByAuthIDSQL(ctx context.Context, userAuthID string) (*entity.User, error) {
@@ -55,6 +74,24 @@ func (u *userRepository) getUserByIDSQL(ctx context.Context, userID string) (*en
 	}
 
 	return &user, nil
+}
+
+func (u *userRepository) getUserAddressByIDSQL(ctx context.Context, req *userpb.GetAddressRequest) (*entity.UserAddress, error) {
+	var userAddress entity.UserAddress
+
+	query, _ := u.queryLoader.Get("GetUserAddressByID")
+	err := u.db0.QueryRowxContext(ctx, query, req.AddressId, req.UserId).StructScan(&userAddress)
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("get_user_address_by_id_sql")
+
+		if err == sql.ErrNoRows {
+			return &userAddress, x.WrapWithCode(err, x.CodeSQLRecordDoesNotExist, "get_user_address_by_id_sql")
+		}
+
+		return nil, x.WrapWithCode(err, x.CodeSQLRowScan, "get_user_address_by_id_sql")
+	}
+
+	return &userAddress, nil
 }
 
 func (u *userRepository) getUserAddressesSQL(ctx context.Context, userID string) ([]*entity.UserAddress, error) {

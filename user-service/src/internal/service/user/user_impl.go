@@ -4,11 +4,28 @@ import (
 	"context"
 
 	authpb "github.com/linggaaskaedo/go-kill/common/pkg/proto/auth"
+	userpb "github.com/linggaaskaedo/go-kill/common/pkg/proto/user"
 	"github.com/linggaaskaedo/go-kill/user-service/src/internal/model/dto"
 	"github.com/linggaaskaedo/go-kill/user-service/src/internal/model/entity"
 
 	"github.com/rs/zerolog"
 )
+
+func (s *userService) CreateUser(ctx context.Context, req *userpb.CreateUserRequest) (*userpb.CreateUserResponse, error) {
+	return s.userRepository.CreateUser(ctx, req)
+}
+
+func (s *userService) GetUser(ctx context.Context, req *userpb.GetUserRequest) (*userpb.GetUserResponse, error) {
+	return s.userRepository.GetUser(ctx, req)
+}
+
+func (s *userService) GetAddress(ctx context.Context, req *userpb.GetAddressRequest) (*userpb.GetAddressResponse, error) {
+	return s.userRepository.GetAddress(ctx, req)
+}
+
+func (s *userService) LogActivity(ctx context.Context, req *userpb.LogActivityRequest) (*userpb.LogActivityResponse, error) {
+	return s.userRepository.LogActivity(ctx, req)
+}
 
 func (s *userService) ValidateToken(ctx context.Context, req *authpb.ValidateTokenRequest) (*authpb.ValidateTokenResponse, error) {
 	authResp, err := s.authClient.ValidateToken(ctx, req)

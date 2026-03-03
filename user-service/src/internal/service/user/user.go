@@ -4,6 +4,7 @@ import (
 	"context"
 
 	authpb "github.com/linggaaskaedo/go-kill/common/pkg/proto/auth"
+	userpb "github.com/linggaaskaedo/go-kill/common/pkg/proto/user"
 	"github.com/linggaaskaedo/go-kill/user-service/src/internal/model/dto"
 	"github.com/linggaaskaedo/go-kill/user-service/src/internal/model/entity"
 	"github.com/linggaaskaedo/go-kill/user-service/src/internal/repository/user"
@@ -12,6 +13,13 @@ import (
 )
 
 type UserServiceItf interface {
+	//gRPC
+	CreateUser(ctx context.Context, req *userpb.CreateUserRequest) (*userpb.CreateUserResponse, error)
+	GetUser(ctx context.Context, req *userpb.GetUserRequest) (*userpb.GetUserResponse, error)
+	GetAddress(ctx context.Context, req *userpb.GetAddressRequest) (*userpb.GetAddressResponse, error)
+	LogActivity(ctx context.Context, req *userpb.LogActivityRequest) (*userpb.LogActivityResponse, error)
+
+	// REST
 	ValidateToken(ctx context.Context, req *authpb.ValidateTokenRequest) (*authpb.ValidateTokenResponse, error)
 	RegisterUser(ctx context.Context, req dto.RegisterUserRequest) (*dto.UserRegResp, error)
 	GetMe(ctx context.Context, userAuthID string) (*dto.UserResp, error)

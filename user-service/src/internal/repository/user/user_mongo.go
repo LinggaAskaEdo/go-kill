@@ -12,16 +12,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func (u *userRepository) logActivityMongo(ctx context.Context, userID, activityType string) error {
-	ip, _ := ctx.Value("ip").(string)
-	ua, _ := ctx.Value("user_agent").(string)
-
-	metadata := map[string]any{
-		"ip_address":          ip,
-		"user_agent":          ua,
-		"registration_method": "email",
-	}
-
+func (u *userRepository) logActivityMongo(ctx context.Context, userID, activityType string, metadata map[string]any) error {
 	activity := entity.UserActivity{
 		UserID:       userID,
 		ActivityType: activityType,

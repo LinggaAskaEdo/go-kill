@@ -17,6 +17,11 @@ SELECT id, email, first_name, last_name
 FROM users
 WHERE id = $1;
 
+-- name: GetUserAddressByID
+SELECT id, user_id, street_address, city, state, postal_code, country 
+FROM user_addresses 
+WHERE id = $1 AND user_id = $2;
+
 -- name: GetUserAddresses
 SELECT id, address_type, street_address, city, state, postal_code, country, is_default
 FROM user_addresses

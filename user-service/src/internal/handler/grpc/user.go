@@ -1,24 +1,23 @@
 package grpc
 
-// func (g *Grpc) CreateAuthUser(ctx context.Context, req *authpb.CreateAuthUserRequest) (*authpb.CreateAuthUserResponse, error) {
-// 	resp, err := g.authClient.CreateAuthUser(ctx, &authpb.CreateAuthUserRequest{
-// 		Email:    req.Email,
-// 		Password: req.Password,
-// 	})
-// 	if err != nil {
-// 		return nil, err
-// 	}
+import (
+	"context"
 
-// 	return resp, nil
-// }
+	userpb "github.com/linggaaskaedo/go-kill/common/pkg/proto/user"
+)
 
-// func (g *Grpc) ValidateToken(ctx context.Context, req *authpb.ValidateTokenRequest) (*authpb.ValidateTokenResponse, error) {
-// 	resp, err := g.authClient.ValidateToken(ctx, &authpb.ValidateTokenRequest{
-// 		Token: req.Token,
-// 	})
-// 	if err != nil {
-// 		return nil, err
-// 	}
+func (g *Grpc) CreateUser(ctx context.Context, req *userpb.CreateUserRequest) (*userpb.CreateUserResponse, error) {
+	return g.svc.User.CreateUser(ctx, req)
+}
 
-// 	return resp, nil
-// }
+func (g *Grpc) GetUser(ctx context.Context, req *userpb.GetUserRequest) (*userpb.GetUserResponse, error) {
+	return g.svc.User.GetUser(ctx, req)
+}
+
+func (g *Grpc) GetAddress(ctx context.Context, req *userpb.GetAddressRequest) (*userpb.GetAddressResponse, error) {
+	return g.svc.User.GetAddress(ctx, req)
+}
+
+func (g *Grpc) LogActivity(ctx context.Context, req *userpb.LogActivityRequest) (*userpb.LogActivityResponse, error) {
+	return g.svc.User.LogActivity(ctx, req)
+}
