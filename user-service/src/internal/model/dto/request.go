@@ -6,3 +6,13 @@ type RegisterUserRequest struct {
 	FirstName string `json:"first_name" binding:"required"`
 	LastName  string `json:"last_name" binding:"required"`
 }
+
+type CreateUserAddress struct {
+	AddressType   string `json:"address_type" binding:"required"`
+	StreetAddress string `json:"street_address" binding:"required"`
+	City          string `json:"city" binding:"required"`
+	State         string `json:"state"`
+	PostalCode    string `json:"postal_code" binding:"required"`
+	Country       string `json:"country" binding:"required"`
+	IsDefault     bool   `json:"is_default"`
+}

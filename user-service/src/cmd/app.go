@@ -23,8 +23,8 @@ import (
 	"github.com/linggaaskaedo/go-kill/user-service/src/internal/config"
 	restHandler "github.com/linggaaskaedo/go-kill/user-service/src/internal/handler/rest"
 	sched "github.com/linggaaskaedo/go-kill/user-service/src/internal/handler/scheduler"
-	"golang.org/x/sync/errgroup"
 
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 )
 
@@ -155,7 +155,7 @@ func main() {
 	httpServerComp := server.NewHTTPServerComponent(log, cfg.Server, mw, gin, func(ctx context.Context, engine *server.Engine) error {
 		select {
 		case <-serviceComp.Ready():
-			restHandler.InitRestHandler(engine, serviceComp.Service(), serviceComp.GrpcHandler())
+			restHandler.InitRestHandler(engine, serviceComp.Service())
 			return nil
 		case <-ctx.Done():
 			return ctx.Err()

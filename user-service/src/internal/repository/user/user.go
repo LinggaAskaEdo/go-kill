@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/linggaaskaedo/go-kill/common/component/query"
+	"github.com/linggaaskaedo/go-kill/user-service/src/internal/model/dto"
 	"github.com/linggaaskaedo/go-kill/user-service/src/internal/model/entity"
 
 	"github.com/jmoiron/sqlx"
@@ -12,8 +13,10 @@ import (
 
 type UserRepositoryItf interface {
 	RegisterUser(ctx context.Context, user *entity.User) (*entity.User, error)
-	GetMe(ctx context.Context, userID string) (*entity.User, error)
-	GetActivities(ctx context.Context, userID string, page string, limit string) ([]entity.UserActivity, int64, error)
+	GetMe(ctx context.Context, userAuthID string) (*entity.User, error)
+	GetActivities(ctx context.Context, userAuthID string, page string, limit string) ([]*entity.UserActivity, int64, error)
+	GetUserAddresses(ctx context.Context, userAuthID string) ([]*entity.UserAddress, error)
+	CreateAddress(ctx context.Context, userAuthID string, req dto.CreateUserAddress) (string, error)
 }
 
 type userRepository struct {

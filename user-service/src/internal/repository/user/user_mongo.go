@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"strconv"
 	"time"
 
 	"github.com/linggaaskaedo/go-kill/user-service/src/internal/model/entity"
@@ -38,12 +39,31 @@ func (u *userRepository) logActivityMongo(ctx context.Context, userID, activityT
 	return nil
 }
 
-func (u *userRepository) getUserActivitiesMongo(ctx context.Context, userID string, page string, limit string) ([]entity.UserActivity, int64, error) {
-	var activities []entity.UserActivity
+func (u *userRepository) getUserActivitiesMongo(ctx context.Context, userID string, page string, limit string) ([]*entity.UserActivity, int64, error) {
+	var activities []*entity.UserActivity
+
+	pageInt, err := strconv.Atoi(page)
+	if err != nil || pageInt < 1 {
+		pageInt = 1 // default to first page
+	}
+
+	limitInt, err := strconv.Atoi(limit)
+	if err != nil || limitInt < 1 {
+		limitInt = 10 // default page size
+	}
+
+	if limitInt > 100 {
+		limitInt = 100
+	}
+
+	skip := (pageInt - 1) * limitInt
 
 	collection := u.mongo0.Collection("user_activities")
 	filter := bson.M{"user_id": userID}
-	opts := options.Find().SetSort(bson.D{{Key: "timestamp", Value: -1}}).SetLimit(20)
+	opts := options.Find().
+		SetSort(bson.D{{Key: "timestamp", Value: -1}}).
+		SetSkip(int64(skip)).
+		SetLimit(int64(limitInt))
 
 	cursor, err := collection.Find(ctx, filter, opts)
 	if err != nil {
@@ -57,7 +77,11 @@ func (u *userRepository) getUserActivitiesMongo(ctx context.Context, userID stri
 		return activities, 0, err
 	}
 
-	total, _ := collection.CountDocuments(context.Background(), filter)
+	total, err := collection.CountDocuments(ctx, filter)
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("count_user_activities_mongo")
+		return activities, 0, err
+	}
 
 	return activities, total, nil
 }

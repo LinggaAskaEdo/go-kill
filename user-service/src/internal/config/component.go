@@ -46,7 +46,7 @@ func NewServiceComponent(
 
 func (s *ServiceComponent) Start(ctx context.Context) error {
 	s.repo = repository.InitRepository(s.dbComp0.Client(), s.queryComp, s.mongoComp0.Database())
-	s.service = service.InitService(s.repo)
+	s.service = service.InitService(s.authClientComp.Conn(), s.repo)
 
 	close(s.ready) // signal that service is ready
 	s.log.Debug().Msg("Service component started")
