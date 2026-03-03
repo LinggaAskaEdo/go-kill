@@ -46,7 +46,7 @@ func (a *authRepository) getUserByEmailSql(ctx context.Context, email string) (*
 	var userAuth entity.UserAuth
 
 	query, _ := a.queryLoader.Get("GetUserByEmail")
-	err := a.db0.QueryRowContext(ctx, query, email).Scan(&userAuth)
+	err := a.db0.QueryRowxContext(ctx, query, email).StructScan(&userAuth)
 	if err != nil {
 		zerolog.Ctx(ctx).Error().Err(err).Msg("get_user_by_email_sql")
 

@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/linggaaskaedo/go-kill/auth-service/src/internal/config"
-	grpcHandler "github.com/linggaaskaedo/go-kill/auth-service/src/internal/handler/grpc"
 	restHandler "github.com/linggaaskaedo/go-kill/auth-service/src/internal/handler/rest"
 	"github.com/linggaaskaedo/go-kill/common/app"
 	"github.com/linggaaskaedo/go-kill/common/component/database"
@@ -21,8 +20,8 @@ import (
 	"github.com/linggaaskaedo/go-kill/common/pkg/logger"
 	"github.com/linggaaskaedo/go-kill/common/pkg/middleware"
 	authpb "github.com/linggaaskaedo/go-kill/common/pkg/proto/auth"
-	"golang.org/x/sync/errgroup"
 
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 )
 
@@ -117,14 +116,9 @@ func main() {
 
 	// Now build gRPC server (depends on service)
 	grpcServerComp := grpcserver.NewGRPCServerComponent(log, cfg.GRPCServer, func(ctx context.Context, s *grpc.Server) error {
-		log.Info().Msg("gRPC server registrar: waiting for service component...")
-
 		select {
 		case <-serviceComp.Ready():
-			log.Info().Msg("gRPC server registrar: service ready, creating handler")
-			grpcHandler := grpcHandler.InitGrpcHandler(log, serviceComp.Service())
-			authpb.RegisterAuthServiceServer(s, grpcHandler)
-			log.Info().Msg("gRPC server registrar: handler registered")
+			authpb.RegisterAuthServiceServer(s, serviceComp.GrpcHandler())
 			return nil
 		case <-ctx.Done():
 			return ctx.Err()
