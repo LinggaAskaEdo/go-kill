@@ -116,7 +116,7 @@ func (u *userRepository) getUserAddressesSQL(ctx context.Context, userID string)
 			&address.Country,
 			&address.IsDefault,
 		); err != nil {
-			zerolog.Ctx(ctx).Error().Err(err).Msg("get_user_addresses_sql row scan")
+			zerolog.Ctx(ctx).Error().Err(err).Msg("get_user_addresses_sql_row_scan")
 			return nil, x.WrapWithCode(err, x.CodeSQLRowScan, "get_user_addresses_sql")
 		}
 
@@ -124,8 +124,8 @@ func (u *userRepository) getUserAddressesSQL(ctx context.Context, userID string)
 	}
 
 	if err = rows.Err(); err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("get_user_addresses_sql rows iteration error")
-		return nil, x.WrapWithCode(err, x.CodeSQLRowScan, "get_user_addresses_sql")
+		zerolog.Ctx(ctx).Error().Err(err).Msg("get_user_addresses_sql_rows")
+		return nil, x.WrapWithCode(err, x.CodeSQLRead, "get_user_addresses_sql")
 	}
 
 	return addresses, nil
