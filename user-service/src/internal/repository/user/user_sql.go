@@ -41,10 +41,15 @@ func (u *userRepository) registerUserSQL(ctx context.Context, tx *sqlx.Tx, user 
 func (u *userRepository) registerUserProfileSQL(ctx context.Context, tx *sqlx.Tx, userID string) (*sqlx.Tx, error) {
 	query, _ := u.queryLoader.Get("RegisterUserProfile")
 	result := tx.MustExecContext(ctx, query, userID)
-	rows, _ := result.RowsAffected()
+	rows, err := result.RowsAffected()
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Str("userID", userID).Msg("register_user_profile_sql")
+		return tx, x.WrapWithCode(err, x.CodeSQLCreate, "register_user_profile_sql")
+	}
+
 	if rows == 0 {
 		zerolog.Ctx(ctx).Error().Str("id", userID).Msg("register_user_profile_sql")
-		return tx, x.NewWithCode(x.CodeSQLCreate, "register_user_profile_sql")
+		return tx, x.NewWithCode(x.CodeSQLCannotRetrieveAffectedRows, "register_user_profile_sql")
 	}
 
 	return tx, nil

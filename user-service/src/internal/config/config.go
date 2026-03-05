@@ -23,7 +23,7 @@ type Config struct {
 	Database   map[string]database.Config   `yaml:"database"`
 	Query      query.Config                 `yaml:"queries"`
 	Mongo      map[string]mongo.Config      `yaml:"mongo"`
-	Scheduler  scheduler.Config             `yaml:"scheduler"`
+	Scheduler  map[string]scheduler.Config  `yaml:"scheduler"`
 	GRPCClient map[string]grpcclient.Config `yaml:"grpc_client"`
 	GRPCServer grpcserver.Config            `yaml:"grpc_server"`
 	Http       http.Config                  `yaml:"http"`

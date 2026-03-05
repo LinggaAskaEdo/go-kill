@@ -2,7 +2,7 @@ package scheduler
 
 import (
 	"context"
-	"math/rand"
+	"math/rand/v2"
 	"time"
 
 	"github.com/linggaaskaedo/go-kill/common/component/scheduler"
@@ -14,16 +14,16 @@ import (
 type UserGeneratorJob struct {
 	log         zerolog.Logger
 	userService user.UserServiceItf
-	config      scheduler.UserGeneratorJobOptions
+	cfg         scheduler.Config
 	rng         *rand.Rand
 }
 
-func NewUserGeneratorJob(log zerolog.Logger, userService user.UserServiceItf, cfg scheduler.UserGeneratorJobOptions) *UserGeneratorJob {
+func NewUserGeneratorJob(log zerolog.Logger, userService user.UserServiceItf, cfg scheduler.Config) *UserGeneratorJob {
 	return &UserGeneratorJob{
 		log:         log,
 		userService: userService,
-		config:      cfg,
-		rng:         rand.New(rand.NewSource(time.Now().UnixNano())),
+		cfg:         cfg,
+		rng:         rand.New(rand.NewPCG(uint64(time.Now().UnixNano()), 0)),
 	}
 }
 
@@ -32,17 +32,17 @@ func (j *UserGeneratorJob) Name() string {
 }
 
 func (j *UserGeneratorJob) Schedule() string {
-	return j.config.Cron
+	return j.cfg.Cron
 }
 
 func (j *UserGeneratorJob) Run(ctx context.Context) error {
-	if !j.config.Enabled {
-		j.log.Debug().Msg("UserGeneratorJob is disabled")
+	if !j.cfg.Enabled {
+		zerolog.Ctx(ctx).Debug().Msg(j.cfg.Name + " is disabled")
 		return nil
 	}
 
 	j.log.Info().
-		Int("batch_size", j.config.BatchSize).
+		Int("batch_size", j.cfg.BatchSize).
 		Msg("Generating random users")
 
 	// successCount := 0

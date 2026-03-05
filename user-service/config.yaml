@@ -48,14 +48,11 @@ mongo:
     database: "go-kill"
 
 scheduler:
-  enabled: false
-  jobs:
-    user_generator:
-      enabled: true
-      cron: "*/30 * * * * *" # Every 30 seconds
-      batch_size: 5
-      min_age: 18
-      max_age: 80
+  job-0:
+    enabled: true
+    name: user-generator
+    cron: "*/30 * * * * *" # Every 30 seconds
+    batch_size: 5
 
 grpc_client:
   auth_service:

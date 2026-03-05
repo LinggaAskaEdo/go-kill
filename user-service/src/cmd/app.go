@@ -122,10 +122,10 @@ func main() {
 	appMainComp.Add(serviceComp, 10*time.Second)
 
 	// Initialize scheduler component
-	schedComp := scheduler.NewSchedulerComponent(log, cfg.Scheduler, func() ([]scheduler.Job, error) {
+	schedComp := scheduler.NewSchedulerComponent(log, func() ([]scheduler.Job, error) {
 		select {
 		case <-serviceComp.Ready():
-			userGenJob := sched.NewUserGeneratorJob(log, serviceComp.Service().User, cfg.Scheduler.SchedulerJobs.UserGeneratorJob)
+			userGenJob := sched.NewUserGeneratorJob(log, serviceComp.Service().User, cfg.Scheduler["job-0"])
 			return []scheduler.Job{userGenJob}, nil
 		case <-ctx.Done():
 			return nil, ctx.Err()
