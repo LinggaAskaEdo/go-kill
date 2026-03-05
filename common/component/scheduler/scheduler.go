@@ -35,11 +35,7 @@ type SchedulerComponent struct {
 
 // NewSchedulerComponent creates a new scheduler component, registers all provided jobs,
 // and returns nil if the scheduler is disabled.
-func NewSchedulerComponent(log zerolog.Logger, cfg Config, jobProvider JobProvider) *SchedulerComponent {
-	if !cfg.Enabled {
-		return nil
-	}
-
+func NewSchedulerComponent(log zerolog.Logger, jobProvider JobProvider) *SchedulerComponent {
 	sc := &SchedulerComponent{
 		log:         log,
 		cron:        cron.New(cron.WithSeconds()),
