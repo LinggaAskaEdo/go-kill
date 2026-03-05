@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/robfig/cron/v3"
+	"github.com/rs/xid"
 	"github.com/rs/zerolog"
 )
 
@@ -53,15 +54,17 @@ func (sc *SchedulerComponent) addJob(job Job) error {
 	defer sc.mu.Unlock()
 
 	_, err := sc.cron.AddFunc(job.Schedule(), func() {
-		sc.log.Info().Str("job", job.Name()).Msg("Job started")
+		reqID := xid.New().String()
+		logWithReq := sc.log.With().Str("req_id", reqID).Logger()
+		logWithReq.Info().Str("job", job.Name()).Msg("Job started")
 
 		ctx := context.Background() // You may want to use a derived context with timeout
 		if err := job.Run(ctx); err != nil {
-			sc.log.Error().Err(err).Str("job", job.Name()).Msg("Job execution failed")
+			logWithReq.Error().Err(err).Str("job", job.Name()).Msg("Job execution failed")
 			return
 		}
 
-		sc.log.Info().Str("job", job.Name()).Msg("Job completed successfully")
+		logWithReq.Info().Str("job", job.Name()).Msg("Job completed successfully")
 	})
 	if err != nil {
 		return fmt.Errorf("add job %s: %w", job.Name(), err)
