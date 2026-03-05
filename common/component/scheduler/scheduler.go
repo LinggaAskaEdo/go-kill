@@ -10,20 +10,10 @@ import (
 )
 
 type Config struct {
-	Enabled       bool                 `yaml:"enabled"`
-	SchedulerJobs SchedulerJobsOptions `yaml:"jobs"`
-}
-
-type SchedulerJobsOptions struct {
-	UserGeneratorJob UserGeneratorJobOptions `yaml:"user_generator"`
-}
-
-type UserGeneratorJobOptions struct {
 	Enabled   bool   `yaml:"enabled"`
+	Name      string `yaml:"name"`
 	Cron      string `yaml:"cron"`
 	BatchSize int    `yaml:"batch_size"`
-	MinAge    int    `yaml:"min_age"`
-	MaxAge    int    `yaml:"max_age"`
 }
 
 type Job interface {
