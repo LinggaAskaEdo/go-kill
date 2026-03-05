@@ -41,6 +41,10 @@ database:
 queries:
   path: ./etc/sql/
 
+service:
+  auth:
+    jwt_secret: ${JWT_SECRET}
+
 grpc_server:
   port: ":8081"
   shutdown_timeout: 10s

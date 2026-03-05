@@ -7,6 +7,7 @@ import (
 
 	"github.com/linggaaskaedo/go-kill/auth-service/src/internal/repository/auth"
 	authpb "github.com/linggaaskaedo/go-kill/common/pkg/proto/auth"
+
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -20,11 +21,17 @@ type AuthServiceItf interface {
 
 type authService struct {
 	authRepository auth.AuthRepositoryItf
+	authOptions    Options
 }
 
-func InitAuthService(authRepository auth.AuthRepositoryItf) AuthServiceItf {
+type Options struct {
+	JwtSecret string `yaml:"jwt_secret"`
+}
+
+func InitAuthService(authRepository auth.AuthRepositoryItf, authOptions Options) AuthServiceItf {
 	return &authService{
 		authRepository: authRepository,
+		authOptions:    authOptions,
 	}
 }
 

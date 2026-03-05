@@ -2,7 +2,6 @@ package auth
 
 import (
 	"context"
-	"os"
 	"time"
 
 	x "github.com/linggaaskaedo/go-kill/common/pkg/errors"
@@ -12,8 +11,6 @@ import (
 	"github.com/rs/zerolog"
 	"golang.org/x/crypto/bcrypt"
 )
-
-var jwtSecret = []byte(os.Getenv("JWT_SECRET"))
 
 func (a *authService) CreateAuthUser(ctx context.Context, req *authpb.CreateAuthUserRequest) (*authpb.CreateAuthUserResponse, error) {
 	authID, err := a.authRepository.CreateAuthUser(ctx, req)
@@ -53,7 +50,7 @@ func (a *authService) Login(ctx context.Context, req *authpb.LoginRequest) (*aut
 		"jti":   generateTokenID(),
 	})
 
-	accessToken, err := token.SignedString(jwtSecret)
+	accessToken, err := token.SignedString([]byte(a.authOptions.JwtSecret))
 	if err != nil {
 		return nil, x.Wrap(err, "Failed to generate token")
 	}
@@ -76,7 +73,7 @@ func (a *authService) Login(ctx context.Context, req *authpb.LoginRequest) (*aut
 }
 
 func (a *authService) ValidateToken(ctx context.Context, req *authpb.ValidateTokenRequest) (*authpb.ValidateTokenResponse, error) {
-	token, err := jwt.Parse(req.Token, func(token *jwt.Token) (any, error) { return jwtSecret, nil })
+	token, err := jwt.Parse(req.Token, func(token *jwt.Token) (any, error) { return []byte(a.authOptions.JwtSecret), nil })
 	if err != nil || !token.Valid {
 		return nil, x.Wrap(err, "Failed to parse token")
 	}
@@ -115,7 +112,7 @@ func (a *authService) RefreshToken(ctx context.Context, req *authpb.RefreshToken
 		"jti":   generateTokenID(),
 	})
 
-	accessToken, err := token.SignedString(jwtSecret)
+	accessToken, err := token.SignedString([]byte(a.authOptions.JwtSecret))
 	if err != nil {
 		return nil, x.Wrap(err, "Failed signed token")
 	}
@@ -130,7 +127,7 @@ func (a *authService) RefreshToken(ctx context.Context, req *authpb.RefreshToken
 func (a *authService) Logout(ctx context.Context, req *authpb.LogoutRequest) (*authpb.LogoutResponse, error) {
 	// Parse token to get JTI
 	token, _ := jwt.Parse(req.Token, func(token *jwt.Token) (interface{}, error) {
-		return jwtSecret, nil
+		return []byte(a.authOptions.JwtSecret), nil
 	})
 
 	if token != nil {

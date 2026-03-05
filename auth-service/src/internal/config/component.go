@@ -18,6 +18,7 @@ type ServiceComponent struct {
 	dbComp0    *database.DatabaseComponent
 	queryComp  *query.QueryComponent
 	redisComp0 *redis.RedisComponent
+	svcOpts    service.Options
 
 	repo        *repository.Repository
 	service     *service.Service
@@ -30,19 +31,21 @@ func NewServiceComponent(
 	dbComp0 *database.DatabaseComponent,
 	queryComp *query.QueryComponent,
 	redisComp0 *redis.RedisComponent,
+	svcOpts service.Options,
 ) *ServiceComponent {
 	return &ServiceComponent{
 		log:        log,
 		dbComp0:    dbComp0,
 		queryComp:  queryComp,
 		redisComp0: redisComp0,
+		svcOpts:    svcOpts,
 		ready:      make(chan struct{}),
 	}
 }
 
 func (s *ServiceComponent) Start(ctx context.Context) error {
 	s.repo = repository.InitRepository(s.dbComp0.Client(), s.queryComp, s.redisComp0.Client())
-	s.service = service.InitService(s.repo)
+	s.service = service.InitService(s.repo, s.svcOpts)
 	s.grpcHandler = grpcHandler.InitGrpcHandler(s.log, s.service)
 
 	close(s.ready) // signal that service is ready

@@ -9,10 +9,15 @@ type Service struct {
 	Auth auth.AuthServiceItf
 }
 
-func InitService(repository *repository.Repository) *Service {
+type Options struct {
+	AuthOpts auth.Options `yaml:"auth"`
+}
+
+func InitService(repository *repository.Repository, opts Options) *Service {
 	return &Service{
 		Auth: auth.InitAuthService(
 			repository.Auth,
+			opts.AuthOpts,
 		),
 	}
 }

@@ -111,7 +111,7 @@ func main() {
 	}
 
 	// Now build the service component (which depends on database, mongo, query, etc.)
-	serviceComp := config.NewServiceComponent(log, dbComp0, queryComp, redisComp0)
+	serviceComp := config.NewServiceComponent(log, dbComp0, queryComp, redisComp0, cfg.Service)
 	appMainComp.Add(serviceComp, 10*time.Second)
 
 	// Now build gRPC server (depends on service)

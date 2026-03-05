@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 
+	"github.com/linggaaskaedo/go-kill/auth-service/src/internal/service"
 	"github.com/linggaaskaedo/go-kill/common/component/database"
 	"github.com/linggaaskaedo/go-kill/common/component/grpcclient"
 	"github.com/linggaaskaedo/go-kill/common/component/grpcserver"
@@ -24,6 +25,8 @@ type Config struct {
 	GRPCServer grpcserver.Config            `yaml:"grpc_server"`
 	Http       http.Config                  `yaml:"http"`
 	Server     server.Config                `yaml:"server"`
+
+	Service service.Options `yaml:"service"`
 }
 
 func Load(configPath string) (*Config, error) {
