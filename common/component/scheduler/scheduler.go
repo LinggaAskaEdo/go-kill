@@ -57,8 +57,8 @@ func (sc *SchedulerComponent) addJob(job Job) error {
 		reqID := xid.New().String()
 		logWithReq := sc.log.With().Str("req_id", reqID).Logger()
 		logWithReq.Info().Str("job", job.Name()).Msg("Job started")
+		ctx := logWithReq.WithContext(context.Background())
 
-		ctx := context.Background() // You may want to use a derived context with timeout
 		if err := job.Run(ctx); err != nil {
 			logWithReq.Error().Err(err).Str("job", job.Name()).Msg("Job execution failed")
 			return
