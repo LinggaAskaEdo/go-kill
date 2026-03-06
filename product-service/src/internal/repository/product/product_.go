@@ -64,3 +64,11 @@ func (r *productRepository) GetProduct(ctx context.Context, productID string) (*
 func (r *productRepository) ListCategories(ctx context.Context) ([]*entity.Category, error) {
 	return r.getCategoriesSQL(ctx)
 }
+
+func (r *productRepository) GetCategoriesByProduct(ctx context.Context, productID string) ([]*entity.Category, error) {
+	return r.getCategoriesByProductIDSQL(ctx, productID)
+}
+
+func (r *productRepository) GetProductsByCategory(ctx context.Context, categoryID string) ([]*entity.Product, error) {
+	return r.getProductsByCategoryIDSQL(ctx, categoryID)
+}

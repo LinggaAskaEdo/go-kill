@@ -27,8 +27,11 @@ func InitRestHandler(gin *gin.Engine, svc *service.Service) {
 		e.Serve()
 	})
 }
+
 func (e *rest) Serve() {
 	e.gin.GET("/api/v1/products", e.handleListProducts)
 	e.gin.GET("/api/v1/products/:id", e.handleGetProduct)
 	e.gin.GET("/api/v1/categories", e.handleListCategories)
+	e.gin.GET("/api/v1/products/:id/categories", e.handleGetCategoriesByProduct)
+	e.gin.GET("/api/v1/categories/:id/products", e.handleGetProductsByCategory)
 }

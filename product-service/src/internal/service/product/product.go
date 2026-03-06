@@ -13,6 +13,8 @@ type ProductServiceItf interface {
 	ListProduct(ctx context.Context) ([]*dto.Product, error)
 	GetProduct(ctx context.Context, productID string) (*dto.Product, error)
 	ListCategories(ctx context.Context) ([]*dto.Category, error)
+	GetCategoriesByProduct(ctx context.Context, productID string) ([]*dto.Category, error)
+	GetProductsByCategory(ctx context.Context, categoryID string) ([]*dto.Product, error)
 }
 
 type productService struct {

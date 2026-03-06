@@ -124,7 +124,7 @@ func (r *productRepository) getCategoriesSQL(ctx context.Context) ([]*entity.Cat
 	}
 	defer rows.Close()
 
-	categories := make([]*entity.Category, 0, 10) // adjust capacity as needed
+	categories := make([]*entity.Category, 0, 10)
 	for rows.Next() {
 		var category entity.Category
 		if err := rows.Scan(
@@ -145,4 +145,70 @@ func (r *productRepository) getCategoriesSQL(ctx context.Context) ([]*entity.Cat
 	}
 
 	return categories, nil
+}
+
+func (r *productRepository) getCategoriesByProductIDSQL(ctx context.Context, productID string) ([]*entity.Category, error) {
+	query, _ := r.queryLoader.Get("GetCategoriesByProductID")
+	rows, err := r.db0.QueryContext(ctx, query, productID)
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("get_categories_by_product_id_sql")
+		return nil, x.WrapWithCode(err, x.CodeSQLRowScan, "get_categories_by_product_id_sql")
+	}
+	defer rows.Close()
+
+	categories := make([]*entity.Category, 0, 10)
+	for rows.Next() {
+		var category entity.Category
+		if err := rows.Scan(
+			&category.ID,
+			&category.Name,
+			&category.Slug,
+		); err != nil {
+			zerolog.Ctx(ctx).Error().Err(err).Msg("get_categories_by_product_id_sql")
+			return nil, x.WrapWithCode(err, x.CodeSQLRowScan, "get_categories_by_product_id_sql")
+		}
+
+		categories = append(categories, &category)
+	}
+
+	if err = rows.Err(); err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("get_categories_by_product_id_sql")
+		return nil, x.WrapWithCode(err, x.CodeSQLRead, "get_categories_by_product_id_sql")
+	}
+
+	return categories, nil
+}
+
+func (r *productRepository) getProductsByCategoryIDSQL(ctx context.Context, categoryID string) ([]*entity.Product, error) {
+	query, _ := r.queryLoader.Get("GetProductsByCategoryID")
+	rows, err := r.db0.QueryContext(ctx, query, categoryID)
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("get_products_by_category_id_sql")
+		return nil, x.WrapWithCode(err, x.CodeSQLRowScan, "get_products_by_category_id_sql")
+	}
+	defer rows.Close()
+
+	products := make([]*entity.Product, 0, 3)
+	for rows.Next() {
+		var product entity.Product
+		if err := rows.Scan(
+			&product.ID,
+			&product.Name,
+			&product.Description,
+			&product.Price,
+			&product.SKU,
+		); err != nil {
+			zerolog.Ctx(ctx).Error().Err(err).Msg("get_products_by_category_id_sql")
+			return nil, x.WrapWithCode(err, x.CodeSQLRowScan, "get_products_by_category_id_sql")
+		}
+
+		products = append(products, &product)
+	}
+
+	if err = rows.Err(); err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("get_products_by_category_id_sql")
+		return nil, x.WrapWithCode(err, x.CodeSQLRead, "get_products_by_category_id_sql")
+	}
+
+	return products, nil
 }

@@ -43,3 +43,21 @@ func (s *productService) ListCategories(ctx context.Context) ([]*dto.Category, e
 
 	return toCategories(categories), nil
 }
+
+func (s *productService) GetCategoriesByProduct(ctx context.Context, productID string) ([]*dto.Category, error) {
+	categories, err := s.productRepository.GetCategoriesByProduct(ctx, productID)
+	if err != nil {
+		return nil, err
+	}
+
+	return toCategories(categories), nil
+}
+
+func (s *productService) GetProductsByCategory(ctx context.Context, categoryID string) ([]*dto.Product, error) {
+	products, err := s.productRepository.GetProductsByCategory(ctx, categoryID)
+	if err != nil {
+		return nil, err
+	}
+
+	return toProducts(products), nil
+}

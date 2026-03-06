@@ -42,3 +42,29 @@ func (e *rest) handleListCategories(c *gin.Context) {
 
 	e.httpRespSuccess(c, http.StatusOK, resp, nil)
 }
+
+func (e *rest) handleGetCategoriesByProduct(c *gin.Context) {
+	ctx := c.Request.Context()
+	productID := c.Param("id")
+
+	resp, err := e.svc.Product.GetCategoriesByProduct(ctx, productID)
+	if err != nil {
+		e.httpRespError(c, err)
+		return
+	}
+
+	e.httpRespSuccess(c, http.StatusOK, resp, nil)
+}
+
+func (e *rest) handleGetProductsByCategory(c *gin.Context) {
+	ctx := c.Request.Context()
+	categoryID := c.Param("id")
+
+	resp, err := e.svc.Product.GetProductsByCategory(ctx, categoryID)
+	if err != nil {
+		e.httpRespError(c, err)
+		return
+	}
+
+	e.httpRespSuccess(c, http.StatusOK, resp, nil)
+}

@@ -15,6 +15,8 @@ type ProductRepositoryItf interface {
 	GetListProduct(ctx context.Context) ([]*entity.Product, error)
 	GetProduct(ctx context.Context, productID string) (*entity.Product, error)
 	ListCategories(ctx context.Context) ([]*entity.Category, error)
+	GetCategoriesByProduct(ctx context.Context, productID string) ([]*entity.Category, error)
+	GetProductsByCategory(ctx context.Context, categoryID string) ([]*entity.Product, error)
 }
 
 type productRepository struct {
