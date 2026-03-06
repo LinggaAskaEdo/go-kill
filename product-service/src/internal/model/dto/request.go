@@ -8,3 +8,8 @@ type CreateProductRequest struct {
 	IsActive    bool     `json:"is_active"`
 	Categories  []string `json:"categories,omitempty"`
 }
+
+type CreateReserveInventory struct {
+	ProductId string
+	Quantity  int32
+}

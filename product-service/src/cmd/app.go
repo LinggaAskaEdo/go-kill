@@ -10,6 +10,7 @@ import (
 
 	"github.com/linggaaskaedo/go-kill/common/app"
 	"github.com/linggaaskaedo/go-kill/common/component/database"
+	"github.com/linggaaskaedo/go-kill/common/component/grpcserver"
 	"github.com/linggaaskaedo/go-kill/common/component/http"
 	"github.com/linggaaskaedo/go-kill/common/component/query"
 	"github.com/linggaaskaedo/go-kill/common/component/redis"
@@ -17,11 +18,13 @@ import (
 	"github.com/linggaaskaedo/go-kill/common/component/server"
 	"github.com/linggaaskaedo/go-kill/common/pkg/logger"
 	"github.com/linggaaskaedo/go-kill/common/pkg/middleware"
+	productpb "github.com/linggaaskaedo/go-kill/common/pkg/proto/product"
 	"github.com/linggaaskaedo/go-kill/product-service/src/internal/config"
 	restHandler "github.com/linggaaskaedo/go-kill/product-service/src/internal/handler/rest"
 	sched "github.com/linggaaskaedo/go-kill/product-service/src/internal/handler/scheduler"
 
 	"golang.org/x/sync/errgroup"
+	"google.golang.org/grpc"
 )
 
 var (
@@ -128,6 +131,20 @@ func main() {
 	if schedComp != nil {
 		appMainComp.Add(schedComp, 10*time.Second)
 	}
+
+	// Now build gRPC server (depends on service)
+	grpcServerComp := grpcserver.NewGRPCServerComponent(log, cfg.GRPCServer, func(ctx context.Context, s *grpc.Server) error {
+		select {
+		case <-serviceComp.Ready():
+			productpb.RegisterProductServiceServer(s, serviceComp.GrpcHandler())
+			return nil
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(10 * time.Second):
+			return fmt.Errorf("timeout waiting for gRPC Server")
+		}
+	})
+	appMainComp.Add(grpcServerComp, 10*time.Second)
 
 	// Build HTTP server (depends on service)
 	httpServerComp := server.NewHTTPServerComponent(log, cfg.Server, mw, gin, func(ctx context.Context, engine *server.Engine) error {

@@ -6,6 +6,7 @@ import (
 	"github.com/linggaaskaedo/go-kill/common/component/database"
 	"github.com/linggaaskaedo/go-kill/common/component/query"
 	"github.com/linggaaskaedo/go-kill/common/component/redis"
+	grpcHandler "github.com/linggaaskaedo/go-kill/product-service/src/internal/handler/grpc"
 	"github.com/linggaaskaedo/go-kill/product-service/src/internal/repository"
 	"github.com/linggaaskaedo/go-kill/product-service/src/internal/service"
 
@@ -18,9 +19,10 @@ type ServiceComponent struct {
 	queryComp  *query.QueryComponent
 	redisComp0 *redis.RedisComponent
 
-	repo    *repository.Repository
-	service *service.Service
-	ready   chan struct{}
+	repo        *repository.Repository
+	service     *service.Service
+	grpcHandler *grpcHandler.Grpc
+	ready       chan struct{}
 }
 
 func NewServiceComponent(
@@ -41,6 +43,7 @@ func NewServiceComponent(
 func (s *ServiceComponent) Start(ctx context.Context) error {
 	s.repo = repository.InitRepository(s.dbComp0.Client(), s.queryComp, s.redisComp0.Client())
 	s.service = service.InitService(s.repo)
+	s.grpcHandler = grpcHandler.InitGrpcHandler(s.log, s.service)
 
 	close(s.ready) // signal that service is ready
 	s.log.Debug().Msg("Service component started")
@@ -56,6 +59,10 @@ func (s *ServiceComponent) Stop(ctx context.Context) error {
 
 func (s *ServiceComponent) Service() *service.Service {
 	return s.service
+}
+
+func (s *ServiceComponent) GrpcHandler() *grpcHandler.Grpc {
+	return s.grpcHandler
 }
 
 func (s *ServiceComponent) Ready() <-chan struct{} {

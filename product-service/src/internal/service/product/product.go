@@ -15,6 +15,9 @@ type ProductServiceItf interface {
 	ListCategories(ctx context.Context) ([]*dto.Category, error)
 	GetCategoriesByProduct(ctx context.Context, productID string) ([]*dto.Category, error)
 	GetProductsByCategory(ctx context.Context, categoryID string) ([]*dto.Product, error)
+	CheckInventory(ctx context.Context, productID string) (int32, int32, error)
+	ReserveInventory(ctx context.Context, req []dto.CreateReserveInventory) error
+	ReleaseInventory(ctx context.Context, req []dto.CreateReserveInventory) error
 }
 
 type productService struct {

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/linggaaskaedo/go-kill/common/component/query"
+	"github.com/linggaaskaedo/go-kill/product-service/src/internal/model/dto"
 	"github.com/linggaaskaedo/go-kill/product-service/src/internal/model/entity"
 
 	"github.com/jmoiron/sqlx"
@@ -17,6 +18,9 @@ type ProductRepositoryItf interface {
 	ListCategories(ctx context.Context) ([]*entity.Category, error)
 	GetCategoriesByProduct(ctx context.Context, productID string) ([]*entity.Category, error)
 	GetProductsByCategory(ctx context.Context, categoryID string) ([]*entity.Product, error)
+	CheckInventory(ctx context.Context, productID string) (int32, int32, error)
+	ReserveInventory(ctx context.Context, req []dto.CreateReserveInventory) error
+	ReleaseInventory(ctx context.Context, req []dto.CreateReserveInventory) error
 }
 
 type productRepository struct {

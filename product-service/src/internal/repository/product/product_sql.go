@@ -6,6 +6,7 @@ import (
 	"errors"
 
 	x "github.com/linggaaskaedo/go-kill/common/pkg/errors"
+	"github.com/linggaaskaedo/go-kill/product-service/src/internal/model/dto"
 	"github.com/linggaaskaedo/go-kill/product-service/src/internal/model/entity"
 
 	"github.com/jmoiron/sqlx"
@@ -211,4 +212,67 @@ func (r *productRepository) getProductsByCategoryIDSQL(ctx context.Context, cate
 	}
 
 	return products, nil
+}
+
+func (r *productRepository) getInventoryByProductIDSQL(ctx context.Context, productID string) (int32, int32, error) {
+	var quantity, reserved int32
+
+	query, _ := r.queryLoader.Get("GetInventoryByProductID")
+	err := r.db0.QueryRowContext(ctx, query, productID).Scan(&quantity, &reserved)
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Str("id", productID).Msg("get_inventory_by_product_id_sql")
+		return quantity, reserved, x.WrapWithCode(err, x.CodeSQLCreate, "get_inventory_by_product_id_sql")
+	}
+
+	return quantity, reserved, nil
+}
+
+func (r *productRepository) createReserveInventorySQL(ctx context.Context, tx *sqlx.Tx, req []dto.CreateReserveInventory) (*sqlx.Tx, error) {
+	query0, _ := r.queryLoader.Get("LockUpdateInventory")
+	query1, _ := r.queryLoader.Get("UpdateReservedQuantity")
+
+	for _, item := range req {
+		var quantity, reserved int32
+
+		// Lock and update inventory
+		err := tx.QueryRowxContext(ctx, query0, item.ProductId).Scan(&quantity, &reserved)
+		if err != nil {
+			zerolog.Ctx(ctx).Error().Str("productID", item.ProductId).Msg("create_reserve_inventory_sql")
+			return tx, x.WrapWithCode(err, x.CodeSQLUpdate, "create_reserve_inventory_sql")
+		}
+
+		available := quantity - reserved
+		status := available < int32(item.Quantity)
+		if status {
+			zerolog.Ctx(ctx).Error().Bool("status", status).Msg("create_reserve_inventory_sql")
+			return tx, x.New("Insufficient inventory")
+		}
+
+		// Update reserved quantity
+		_, err = tx.ExecContext(ctx, query1, item.Quantity, item.ProductId)
+		if err != nil {
+			zerolog.Ctx(ctx).Error().Str("productID", item.ProductId).Int32("qty", item.Quantity).Msg("create_reserve_inventory_sql")
+			return tx, x.WrapWithCode(err, x.CodeSQLUpdate, "create_reserve_inventory_sql")
+		}
+
+		r.setInventoryReservedCache(ctx, item.ProductId, item.Quantity)
+	}
+
+	return tx, nil
+}
+
+func (r *productRepository) createReleaseInventorySQL(ctx context.Context, req []dto.CreateReserveInventory) error {
+	query, _ := r.queryLoader.Get("UpdateReleaseQuantity")
+
+	for _, item := range req {
+		_, err := r.db0.ExecContext(ctx, query, item.Quantity, item.ProductId)
+		if err != nil {
+			zerolog.Ctx(ctx).Error().Str("productID", item.ProductId).Int32("qty", item.Quantity).Msg("create_release_inventory_sql")
+			return x.WrapWithCode(err, x.CodeSQLUpdate, "create_release_inventory_sql")
+		}
+
+		r.setInventoryReleaseCache(ctx, item.ProductId, item.Quantity)
+	}
+
+	return nil
 }

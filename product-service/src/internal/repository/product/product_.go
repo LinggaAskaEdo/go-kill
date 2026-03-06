@@ -5,6 +5,7 @@ import (
 	"database/sql"
 
 	x "github.com/linggaaskaedo/go-kill/common/pkg/errors"
+	"github.com/linggaaskaedo/go-kill/product-service/src/internal/model/dto"
 	"github.com/linggaaskaedo/go-kill/product-service/src/internal/model/entity"
 
 	"github.com/rs/zerolog"
@@ -71,4 +72,32 @@ func (r *productRepository) GetCategoriesByProduct(ctx context.Context, productI
 
 func (r *productRepository) GetProductsByCategory(ctx context.Context, categoryID string) ([]*entity.Product, error) {
 	return r.getProductsByCategoryIDSQL(ctx, categoryID)
+}
+func (r *productRepository) CheckInventory(ctx context.Context, productID string) (int32, int32, error) {
+	return r.getInventoryByProductIDSQL(ctx, productID)
+}
+
+func (r *productRepository) ReserveInventory(ctx context.Context, req []dto.CreateReserveInventory) error {
+	tx, err := r.db0.BeginTxx(ctx, &sql.TxOptions{Isolation: sql.LevelDefault})
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("tx_reserve_inventory")
+		return err
+	}
+
+	tx, err = r.createReserveInventorySQL(ctx, tx, req)
+	if err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+
+	if err = tx.Commit(); err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("commit_reserve_inventory")
+		return x.Wrap(err, "commit_reserve_inventory")
+	}
+
+	return nil
+}
+
+func (r *productRepository) ReleaseInventory(ctx context.Context, req []dto.CreateReserveInventory) error {
+	return r.createReleaseInventorySQL(ctx, req)
 }

@@ -21,3 +21,11 @@ func (r *productRepository) getProductCache(ctx context.Context, productID strin
 
 	return &product
 }
+
+func (r *productRepository) setInventoryReservedCache(ctx context.Context, productID string, qty int32) {
+	r.redis0.HIncrBy(ctx, fmt.Sprintf("inventory:%s", productID), "reserved", int64(qty))
+}
+
+func (r *productRepository) setInventoryReleaseCache(ctx context.Context, productID string, qty int32) {
+	r.redis0.HIncrBy(ctx, fmt.Sprintf("inventory:%s", productID), "reserved", -int64(qty))
+}

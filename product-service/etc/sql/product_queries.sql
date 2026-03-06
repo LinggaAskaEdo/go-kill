@@ -37,3 +37,24 @@ SELECT p.id, p.name, p.description, p.price, p.sku
 FROM products p
 INNER JOIN product_categories pc ON p.id = pc.product_id
 WHERE pc.category_id = $1 AND p.is_active = true;
+
+-- name: GetInventoryByProductID
+SELECT quantity, reserved_quantity 
+FROM inventory 
+WHERE product_id = $1;
+
+-- name: LockUpdateInventory
+SELECT quantity, reserved_quantity 
+FROM inventory 
+WHERE product_id = $1 
+FOR UPDATE;
+
+-- name: UpdateReservedQuantity
+UPDATE inventory 
+SET reserved_quantity = reserved_quantity + $1, updated_at = NOW()
+WHERE product_id = $2;
+
+-- name: UpdateReleaseQuantity
+UPDATE inventory 
+SET reserved_quantity = reserved_quantity - $1, updated_at = NOW()
+WHERE product_id = $2;

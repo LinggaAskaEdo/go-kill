@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/linggaaskaedo/go-kill/common/component/database"
+	"github.com/linggaaskaedo/go-kill/common/component/grpcserver"
 	"github.com/linggaaskaedo/go-kill/common/component/http"
 	"github.com/linggaaskaedo/go-kill/common/component/query"
 	"github.com/linggaaskaedo/go-kill/common/component/redis"
@@ -15,13 +16,14 @@ import (
 )
 
 type Config struct {
-	Logger    logger.Config               `yaml:"logger"`
-	Redis     redis.Config                `yaml:"redis"`
-	Database  map[string]database.Config  `yaml:"database"`
-	Query     query.Config                `yaml:"queries"`
-	Scheduler map[string]scheduler.Config `yaml:"scheduler"`
-	Http      http.Config                 `yaml:"http"`
-	Server    server.Config               `yaml:"server"`
+	Logger     logger.Config               `yaml:"logger"`
+	Redis      redis.Config                `yaml:"redis"`
+	Database   map[string]database.Config  `yaml:"database"`
+	Query      query.Config                `yaml:"queries"`
+	Scheduler  map[string]scheduler.Config `yaml:"scheduler"`
+	GRPCServer grpcserver.Config           `yaml:"grpc_server"`
+	Http       http.Config                 `yaml:"http"`
+	Server     server.Config               `yaml:"server"`
 }
 
 func Load(configPath string) (*Config, error) {

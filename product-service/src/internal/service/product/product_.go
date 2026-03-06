@@ -61,3 +61,15 @@ func (s *productService) GetProductsByCategory(ctx context.Context, categoryID s
 
 	return toProducts(products), nil
 }
+
+func (s *productService) CheckInventory(ctx context.Context, productID string) (int32, int32, error) {
+	return s.productRepository.CheckInventory(ctx, productID)
+}
+
+func (s *productService) ReserveInventory(ctx context.Context, req []dto.CreateReserveInventory) error {
+	return s.productRepository.ReserveInventory(ctx, req)
+}
+
+func (s *productService) ReleaseInventory(ctx context.Context, req []dto.CreateReserveInventory) error {
+	return s.productRepository.ReleaseInventory(ctx, req)
+}
