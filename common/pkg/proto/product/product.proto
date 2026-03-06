@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+package product;
+
+option go_package = "github.com/yourusername/microservices/proto/product";
+
+service ProductService {
+  rpc GetProduct(GetProductRequest) returns (GetProductResponse);
+  rpc CheckInventory(CheckInventoryRequest) returns (CheckInventoryResponse);
+  rpc ReserveInventory(ReserveInventoryRequest) returns (ReserveInventoryResponse);
+  rpc ReleaseInventory(ReleaseInventoryRequest) returns (ReleaseInventoryResponse);
+}
+
+message GetProductRequest {
+  string product_id = 1;
+}
+
+message GetProductResponse {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  double price = 4;
+  string sku = 5;
+  bool is_active = 6;
+  bool found = 7;
+}
+
+message CheckInventoryRequest {
+  string product_id = 1;
+  int32 quantity = 2;
+}
+
+message CheckInventoryResponse {
+  bool available = 1;
+  int32 current_quantity = 2;
+  int32 reserved_quantity = 3;
+}
+
+message InventoryItem {
+  string product_id = 1;
+  int32 quantity = 2;
+}
+
+message ReserveInventoryRequest {
+  repeated InventoryItem items = 1;
+}
+
+message ReserveInventoryResponse {
+  bool success = 1;
+  string error = 2;
+}
+
+message ReleaseInventoryRequest {
+  repeated InventoryItem items = 1;
+}
+
+message ReleaseInventoryResponse {
+  bool success = 1;
+}
