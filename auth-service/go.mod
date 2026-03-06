@@ -4,12 +4,12 @@ go 1.25.7
 
 require (
 	github.com/gin-gonic/gin v1.12.0
-	github.com/linggaaskaedo/go-kill/common v1.6.4
+	github.com/linggaaskaedo/go-kill/common v1.7.0
 	github.com/redis/go-redis/v9 v9.18.0
 	github.com/swaggo/swag v1.16.6
 	golang.org/x/crypto v0.48.0
 	golang.org/x/sync v0.19.0
-	google.golang.org/grpc v1.79.1
+	google.golang.org/grpc v1.79.2
 )
 
 require (
