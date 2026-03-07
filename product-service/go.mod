@@ -4,7 +4,7 @@ go 1.25.7
 
 require (
 	github.com/gin-gonic/gin v1.12.0
-	github.com/linggaaskaedo/go-kill/common v1.7.3
+	github.com/linggaaskaedo/go-kill/common v1.8.0
 	github.com/redis/go-redis/v9 v9.18.0
 	github.com/swaggo/swag v1.16.6
 	golang.org/x/sync v0.19.0
