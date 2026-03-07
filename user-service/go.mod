@@ -1,12 +1,12 @@
 module github.com/linggaaskaedo/go-kill/user-service
 
-go 1.25.7
+go 1.25.8
 
 require (
 	github.com/gin-gonic/gin v1.12.0
 	github.com/goccy/go-yaml v1.19.2
 	github.com/jmoiron/sqlx v1.4.0
-	github.com/linggaaskaedo/go-kill/common v1.8.0
+	github.com/linggaaskaedo/go-kill/common v1.9.0
 	github.com/swaggo/swag v1.16.6
 	go.mongodb.org/mongo-driver/v2 v2.5.0
 	google.golang.org/grpc v1.79.2

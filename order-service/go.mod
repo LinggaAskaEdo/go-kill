@@ -1,9 +1,9 @@
 module github.com/linggaaskaedo/go-kill/order-service
 
-go 1.25.7
+go 1.25.8
 
 require (
-	github.com/linggaaskaedo/go-kill/common v1.8.0
+	github.com/linggaaskaedo/go-kill/common v1.9.0
 	github.com/swaggo/swag v1.16.6
 	golang.org/x/sync v0.19.0
 )
