@@ -23,6 +23,22 @@ database:
 queries:
   path: ./etc/sql/
 
+kafka_produce:
+  brokers:
+    - localhost:9092
+  retry_max: 5
+  timeout: 5s
+
+grpc_client:
+  user_service:
+    target: "localhost:8082"
+    timeout: 5s
+    insecure: true
+  product_service:
+    target: "localhost:8084"
+    timeout: 5s
+    insecure: true
+
 grpc_server:
   port: ":8086"
   shutdown_timeout: 10s

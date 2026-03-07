@@ -10,7 +10,9 @@ import (
 
 	"github.com/linggaaskaedo/go-kill/common/app"
 	"github.com/linggaaskaedo/go-kill/common/component/database"
+	"github.com/linggaaskaedo/go-kill/common/component/grpcclient"
 	"github.com/linggaaskaedo/go-kill/common/component/grpcserver"
+	"github.com/linggaaskaedo/go-kill/common/component/kafkaproducer"
 	"github.com/linggaaskaedo/go-kill/common/component/query"
 	"github.com/linggaaskaedo/go-kill/common/pkg/logger"
 	orderpb "github.com/linggaaskaedo/go-kill/common/pkg/proto/order"
@@ -70,8 +72,15 @@ func main() {
 	queryComp := query.NewQueryComponent(log, cfg.Query)
 	appSubComp.Add(queryComp, 10*time.Second)
 
+	// Initialize gRPC client components
+	userClientComp := grpcclient.NewGRPCClientComponent(log, cfg.GRPCClient["user_service"])
+	appSubComp.Add(userClientComp, 10*time.Second)
+
+	productClientComp := grpcclient.NewGRPCClientComponent(log, cfg.GRPCClient["product_service"])
+	appSubComp.Add(productClientComp, 10*time.Second)
+
 	// Stage 1: Start independent components (no dependencies)
-	independent := []app.Component{dbComp0, queryComp}
+	independent := []app.Component{dbComp0, queryComp, userClientComp, productClientComp}
 
 	// Create a shared context that cancels on SIGINT/SIGTERM
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
@@ -96,8 +105,12 @@ func main() {
 	}
 
 	// Now build the service component (which depends on database, mongo, query, etc.)
-	serviceComp := config.NewServiceComponent(log, dbComp0, queryComp)
+	serviceComp := config.NewServiceComponent(log, dbComp0, queryComp, userClientComp, productClientComp)
 	appMainComp.Add(serviceComp, 10*time.Second)
+
+	// Kafka Producer
+	producerComp := kafkaproducer.NewKafkaProducerComponent(log, cfg.KafkaProducer)
+	appMainComp.Add(producerComp, 10*time.Second)
 
 	// Now build gRPC server (depends on service)
 	grpcServerComp := grpcserver.NewGRPCServerComponent(log, cfg.GRPCServer, func(ctx context.Context, s *grpc.Server) error {

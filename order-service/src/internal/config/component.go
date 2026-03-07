@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/linggaaskaedo/go-kill/common/component/database"
+	"github.com/linggaaskaedo/go-kill/common/component/grpcclient"
 	"github.com/linggaaskaedo/go-kill/common/component/query"
 	grpcHandler "github.com/linggaaskaedo/go-kill/order-service/src/internal/handler/grpc"
 	"github.com/linggaaskaedo/go-kill/order-service/src/internal/repository"
@@ -13,9 +14,11 @@ import (
 )
 
 type ServiceComponent struct {
-	log       zerolog.Logger
-	dbComp0   *database.DatabaseComponent
-	queryComp *query.QueryComponent
+	log               zerolog.Logger
+	dbComp0           *database.DatabaseComponent
+	queryComp         *query.QueryComponent
+	userClientComp    *grpcclient.GRPCClientComponent
+	productClientComp *grpcclient.GRPCClientComponent
 
 	repo        *repository.Repository
 	service     *service.Service
@@ -27,18 +30,22 @@ func NewServiceComponent(
 	log zerolog.Logger,
 	dbComp0 *database.DatabaseComponent,
 	queryComp *query.QueryComponent,
+	userClientComp *grpcclient.GRPCClientComponent,
+	productClientComp *grpcclient.GRPCClientComponent,
 ) *ServiceComponent {
 	return &ServiceComponent{
-		log:       log,
-		dbComp0:   dbComp0,
-		queryComp: queryComp,
-		ready:     make(chan struct{}),
+		log:               log,
+		dbComp0:           dbComp0,
+		queryComp:         queryComp,
+		userClientComp:    userClientComp,
+		productClientComp: productClientComp,
+		ready:             make(chan struct{}),
 	}
 }
 
 func (s *ServiceComponent) Start(ctx context.Context) error {
 	s.repo = repository.InitRepository(s.dbComp0.Client(), s.queryComp)
-	s.service = service.InitService(s.repo)
+	s.service = service.InitService(s.userClientComp.Conn(), s.productClientComp.Conn(), s.repo)
 	s.grpcHandler = grpcHandler.InitGrpcHandler(s.log, s.service)
 
 	close(s.ready) // signal that service is ready

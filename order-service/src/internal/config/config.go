@@ -4,7 +4,9 @@ import (
 	"os"
 
 	"github.com/linggaaskaedo/go-kill/common/component/database"
+	"github.com/linggaaskaedo/go-kill/common/component/grpcclient"
 	"github.com/linggaaskaedo/go-kill/common/component/grpcserver"
+	"github.com/linggaaskaedo/go-kill/common/component/kafkaproducer"
 	"github.com/linggaaskaedo/go-kill/common/component/query"
 	"github.com/linggaaskaedo/go-kill/common/pkg/logger"
 
@@ -12,10 +14,12 @@ import (
 )
 
 type Config struct {
-	Logger     logger.Config              `yaml:"logger"`
-	Database   map[string]database.Config `yaml:"database"`
-	Query      query.Config               `yaml:"queries"`
-	GRPCServer grpcserver.Config          `yaml:"grpc_server"`
+	Logger        logger.Config                `yaml:"logger"`
+	Database      map[string]database.Config   `yaml:"database"`
+	Query         query.Config                 `yaml:"queries"`
+	KafkaProducer kafkaproducer.Config         `yaml:"kafka_produce"`
+	GRPCClient    map[string]grpcclient.Config `yaml:"grpc_client"`
+	GRPCServer    grpcserver.Config            `yaml:"grpc_server"`
 }
 
 func Load(configPath string) (*Config, error) {
