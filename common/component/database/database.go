@@ -9,6 +9,7 @@ import (
 
 	"github.com/linggaaskaedo/go-kill/common/pkg/preference"
 
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"github.com/rs/zerolog"
@@ -117,6 +118,10 @@ func getURI(cfg Config) (string, string, error) {
 		}
 
 		uri := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?tls=%s&parseTime=true", cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.DBName, tls)
+		return cfg.Driver, uri, nil
+
+	case preference.MARIADB:
+		uri := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.DBName)
 		return cfg.Driver, uri, nil
 
 	default:
