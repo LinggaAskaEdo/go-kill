@@ -55,13 +55,15 @@ func NewDatabaseComponent(log zerolog.Logger, cfg Config) *DatabaseComponent {
 // and then blocks until the context is cancelled.
 // It returns an error if the connection cannot be established.
 func (d *DatabaseComponent) Start(ctx context.Context) error {
-	driver, uri, err := getURI(d.cfg)
+	driver, uri, err := d.getURI(d.cfg)
 	if err != nil {
+		d.log.Error().Err(err).Msg("Failed build database URI")
 		return fmt.Errorf("build database URI: %w", err)
 	}
 
 	db, err := sqlx.ConnectContext(ctx, driver, uri)
 	if err != nil {
+		d.log.Error().Err(err).Msg("Failed connect to database")
 		return fmt.Errorf("connect to database: %w", err)
 	}
 
@@ -100,7 +102,7 @@ func (d *DatabaseComponent) Stop(ctx context.Context) error {
 
 // getURI constructs the driver name and connection string based on config.
 // It is a slightly modified version of your existing getURI.
-func getURI(cfg Config) (string, string, error) {
+func (d *DatabaseComponent) getURI(cfg Config) (string, string, error) {
 	switch cfg.Driver {
 	case preference.POSTGRES:
 		ssl := "disable"
@@ -122,7 +124,7 @@ func getURI(cfg Config) (string, string, error) {
 
 	case preference.MARIADB:
 		uri := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.DBName)
-		return cfg.Driver, uri, nil
+		return preference.MYSQL, uri, nil // Even using MariaDB, the driver is only registered using mysql name
 
 	default:
 		return "", "", errors.New("unsupported database driver: " + cfg.Driver)
