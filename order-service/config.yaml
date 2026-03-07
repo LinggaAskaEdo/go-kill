@@ -1,0 +1,28 @@
+logger:
+  enabled: true
+  level: info # debug, info, warn, error
+  format: json # json, console
+  output: stdout # stdout, file
+  path: ./logs/app.log
+  max_size: 100 # megabytes
+  max_backups: 7
+  max_age: 30 # days
+  compress: true # disabled by default
+
+database:
+  db-0:
+    enabled: true
+    driver: mariadb
+    host: localhost
+    port: 3306
+    user: root
+    password: ${MYSQL_DOCKER_PASSWORD}
+    dbname: go-kill-order
+    sslmode: false
+
+queries:
+  path: ./etc/sql/
+
+grpc_server:
+  port: ":8086"
+  shutdown_timeout: 10s
