@@ -3,6 +3,7 @@ module github.com/linggaaskaedo/go-kill/order-service
 go 1.25.8
 
 require (
+	github.com/google/uuid v1.6.0
 	github.com/linggaaskaedo/go-kill/common v1.9.0
 	github.com/swaggo/swag v1.16.6
 	golang.org/x/sync v0.20.0
@@ -26,7 +27,6 @@ require (
 	github.com/go-openapi/swag/typeutils v0.25.5 // indirect
 	github.com/go-openapi/swag/yamlutils v0.25.5 // indirect
 	github.com/go-sql-driver/mysql v1.9.3 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/hashicorp/go-uuid v1.0.3 // indirect
 	github.com/jcmturner/aescts/v2 v2.0.0 // indirect
 	github.com/jcmturner/dnsutils/v2 v2.0.0 // indirect

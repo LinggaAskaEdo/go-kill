@@ -13,7 +13,7 @@ VALUES (?, ?, ?, 'pending', NOW(), NOW());
 
 -- name: CreateStatusHistory
 INSERT INTO order_status_history (order_id, status, note, created_at)
-VALUES (?, 'pending', 'Order created', NOW());
+VALUES (?, ?, ?, NOW());
 
 -- name: GetOrder
 SELECT id, order_number, status, total_amount 
@@ -36,3 +36,8 @@ LIMIT ? OFFSET ?;
 SELECT COUNT(*) 
 FROM orders 
 WHERE user_id = ?;
+
+-- name: UpdateOrderStatus
+UPDATE orders 
+SET status = 'cancelled', updated_at = NOW() 
+WHERE id = ?;

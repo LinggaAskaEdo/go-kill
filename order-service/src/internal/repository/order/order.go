@@ -16,6 +16,7 @@ type OrderRepositoryItf interface {
 	StoreOrder(ctx context.Context, productDetails []*dto.ProductDetails, createOrders *dto.CreateOrderRequest, totalAmount float64) (*string, *string, error)
 	GetOrder(ctx context.Context, reqData *dto.GetOrderRequest) (*entity.Order, error)
 	ListOrders(ctx context.Context, reqData *dto.ListOrderRequest) ([]*entity.Order, int32, error)
+	CancelOrder(ctx context.Context, reqData *dto.CancelOrderRequest) error
 }
 
 type orderRepository struct {

@@ -10,6 +10,7 @@ import (
 	productpb "github.com/linggaaskaedo/go-kill/common/pkg/proto/product"
 	"github.com/linggaaskaedo/go-kill/order-service/src/internal/model/dto"
 	"github.com/linggaaskaedo/go-kill/order-service/src/internal/model/entity"
+	"github.com/linggaaskaedo/go-kill/order-service/src/internal/util"
 
 	"github.com/rs/zerolog"
 )
@@ -80,7 +81,7 @@ func (r *orderRepository) StoreOrder(ctx context.Context, productDetails []*dto.
 	}
 
 	// Insert status history
-	tx, err = r.createStatusHistorySQL(ctx, tx, order.ID)
+	tx, err = r.createStatusHistorySQL(ctx, tx, order.ID, string(entity.StatusPending), "Order created")
 	if err != nil {
 		_ = tx.Rollback()
 		r.doReleaseInventory(ctx, inventoryItems)
@@ -110,10 +111,12 @@ func (r *orderRepository) GetOrder(ctx context.Context, reqData *dto.GetOrderReq
 		return nil, err
 	}
 
-	err = r.getOrderItemSQL(ctx, reqData.OrderID, order)
+	orderItems, err := r.getOrderItemSQL(ctx, reqData.OrderID)
 	if err != nil {
 		return nil, err
 	}
+
+	order.Items = orderItems
 
 	return order, nil
 }
@@ -130,4 +133,57 @@ func (r *orderRepository) ListOrders(ctx context.Context, reqData *dto.ListOrder
 	}
 
 	return orders, total, nil
+}
+
+func (r *orderRepository) CancelOrder(ctx context.Context, reqData *dto.CancelOrderRequest) error {
+	order, err := r.getOrderSQL(ctx, reqData.OrderID, reqData.UserID)
+	if err != nil {
+		return err
+	}
+
+	if order.Status != "pending" && order.Status != "confirmed" {
+		return x.New("Order cannot be cancelled")
+	}
+
+	orderItems, err := r.getOrderItemSQL(ctx, reqData.OrderID)
+	if err != nil {
+		return err
+	}
+
+	tx, err := r.db0.BeginTxx(ctx, &sql.TxOptions{Isolation: sql.LevelDefault})
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("tx_cancel_order")
+		return err
+	}
+
+	// Update order status
+	tx, err = r.updateOrderStatusSQL(ctx, tx, reqData.OrderID)
+	if err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+
+	// Add status history
+	tx, err = r.createStatusHistorySQL(ctx, tx, order.ID, string(entity.StatusCancelled), reqData.Reason)
+	if err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+
+	// Release inventory
+	_, err = r.productClient.ReleaseInventory(ctx, &productpb.ReleaseInventoryRequest{
+		Items: util.ToInventoryItemPB(orderItems),
+	})
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("Failed to release inventory")
+		_ = tx.Rollback()
+		return err
+	}
+
+	if err = tx.Commit(); err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("commit_cancel_order")
+		return x.Wrap(err, "commit_cancel_order")
+	}
+
+	return nil
 }

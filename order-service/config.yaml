@@ -26,6 +26,7 @@ queries:
 service:
   order:
     topic_order_created: order.created
+    topic_order_canceled: order.cancelled
 
 kafka_produce:
   brokers:

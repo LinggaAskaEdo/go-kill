@@ -48,7 +48,7 @@ func (r *orderRepository) createOrderItemsSQL(ctx context.Context, tx *sqlx.Tx, 
 		return tx, x.NewWithCode(x.CodeSQLCreate, "create_order_items_batch_failed")
 	}
 
-	// Optional: verify rows affected match expected count
+	// Verify rows affected match expected count
 	rowsAffected, _ := result.RowsAffected()
 	if int(rowsAffected) != len(items) {
 		zerolog.Ctx(ctx).Error().
@@ -74,9 +74,9 @@ func (r *orderRepository) createPaymentSQL(ctx context.Context, tx *sqlx.Tx, pay
 	return tx, nil
 }
 
-func (r *orderRepository) createStatusHistorySQL(ctx context.Context, tx *sqlx.Tx, orderID string) (*sqlx.Tx, error) {
+func (r *orderRepository) createStatusHistorySQL(ctx context.Context, tx *sqlx.Tx, orderID, status, note string) (*sqlx.Tx, error) {
 	query, _ := r.queryLoader.Get("CreateStatusHistory")
-	rows, err := tx.MustExecContext(ctx, query, orderID).RowsAffected()
+	rows, err := tx.MustExecContext(ctx, query, orderID, status, note).RowsAffected()
 	if rows == 0 || err != nil {
 		zerolog.Ctx(ctx).Error().Str("orderID", orderID).Msg("create_status_history_sql")
 		return tx, x.WrapWithCode(err, x.CodeSQLCreate, "create_status_history_sql")
@@ -85,11 +85,11 @@ func (r *orderRepository) createStatusHistorySQL(ctx context.Context, tx *sqlx.T
 	return tx, nil
 }
 
-func (r *orderRepository) getOrderSQL(ctx context.Context, orderID string, productID string) (*entity.Order, error) {
+func (r *orderRepository) getOrderSQL(ctx context.Context, orderID string, userID string) (*entity.Order, error) {
 	var order entity.Order
 
 	query, _ := r.queryLoader.Get("GetOrder")
-	err := r.db0.QueryRowxContext(ctx, query, orderID, productID).StructScan(&order)
+	err := r.db0.QueryRowxContext(ctx, query, orderID, userID).StructScan(&order)
 	if err != nil {
 		zerolog.Ctx(ctx).Error().Err(err).Msg("get_order_sql")
 
@@ -103,21 +103,22 @@ func (r *orderRepository) getOrderSQL(ctx context.Context, orderID string, produ
 	return &order, nil
 }
 
-func (r *orderRepository) getOrderItemSQL(ctx context.Context, orderID string, order *entity.Order) error {
+func (r *orderRepository) getOrderItemSQL(ctx context.Context, orderID string) ([]*entity.OrderItem, error) {
+	orderItems := make([]*entity.OrderItem, 0, 3)
+
 	query, _ := r.queryLoader.Get("GetOrderItem")
 	rows, err := r.db0.QueryContext(ctx, query, orderID)
 	if err != nil {
 		zerolog.Ctx(ctx).Error().Err(err).Msg("get_order_item_sql")
 
 		if errors.Is(err, sql.ErrNoRows) {
-			return x.WrapWithCode(err, x.CodeSQLRecordDoesNotExist, "get_order_item_sql")
+			return orderItems, x.WrapWithCode(err, x.CodeSQLRecordDoesNotExist, "get_order_item_sql")
 		}
 
-		return x.WrapWithCode(err, x.CodeSQLRowScan, "get_order_item_sql")
+		return orderItems, x.WrapWithCode(err, x.CodeSQLRowScan, "get_order_item_sql")
 	}
 	defer rows.Close()
 
-	// categories := make([]*entity.Category, 0, 10)
 	for rows.Next() {
 		var orderItem entity.OrderItem
 		if err := rows.Scan(
@@ -129,35 +130,37 @@ func (r *orderRepository) getOrderItemSQL(ctx context.Context, orderID string, o
 			&orderItem.Subtotal,
 		); err != nil {
 			zerolog.Ctx(ctx).Error().Err(err).Msg("get_order_item_sql_row_scan")
-			return x.WrapWithCode(err, x.CodeSQLRowScan, "get_order_item_sql_row_scan")
+			return orderItems, x.WrapWithCode(err, x.CodeSQLRowScan, "get_order_item_sql_row_scan")
 		}
 
-		order.Items = append(order.Items, &orderItem)
+		orderItems = append(orderItems, &orderItem)
+		// order.Items = append(order.Items, &orderItem)
 	}
 
 	if err = rows.Err(); err != nil {
 		zerolog.Ctx(ctx).Error().Err(err).Msg("get_order_item_sql_rows")
-		return x.WrapWithCode(err, x.CodeSQLRead, "get_order_item_sql_rows")
+		return orderItems, x.WrapWithCode(err, x.CodeSQLRead, "get_order_item_sql_rows")
 	}
 
-	return nil
+	return orderItems, nil
 }
 
 func (r *orderRepository) getOrderLimitSQL(ctx context.Context, reqData *dto.ListOrderRequest) ([]*entity.Order, error) {
+	orders := make([]*entity.Order, 0, 3)
+
 	query, _ := r.queryLoader.Get("GetOrderLimit")
 	rows, err := r.db0.QueryContext(ctx, query, reqData.UserID, reqData.Limit, reqData.Offset)
 	if err != nil {
 		zerolog.Ctx(ctx).Error().Err(err).Msg("get_order_limit_sql")
 
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, x.WrapWithCode(err, x.CodeSQLRecordDoesNotExist, "get_order_limit_sql")
+			return orders, x.WrapWithCode(err, x.CodeSQLRecordDoesNotExist, "get_order_limit_sql")
 		}
 
-		return nil, x.WrapWithCode(err, x.CodeSQLRowScan, "get_order_limit_sql")
+		return orders, x.WrapWithCode(err, x.CodeSQLRowScan, "get_order_limit_sql")
 	}
 	defer rows.Close()
 
-	orders := make([]*entity.Order, 0, 10)
 	for rows.Next() {
 		var order entity.Order
 		if err := rows.Scan(
@@ -197,4 +200,15 @@ func (r *orderRepository) getOrderTotalSQL(ctx context.Context, UserID string) (
 	}
 
 	return total, nil
+}
+
+func (r *orderRepository) updateOrderStatusSQL(ctx context.Context, tx *sqlx.Tx, orderID string) (*sqlx.Tx, error) {
+	query, _ := r.queryLoader.Get("UpdateOrderStatus")
+	_, err := tx.ExecContext(ctx, query, orderID)
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("get_update_order_status_sql")
+		return tx, x.WrapWithCode(err, x.CodeSQLUpdate, "get_update_order_status_sql")
+	}
+
+	return tx, nil
 }

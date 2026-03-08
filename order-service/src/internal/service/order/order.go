@@ -16,6 +16,7 @@ type OrderServiceItf interface {
 	CreateOrder(ctx context.Context, reqData *dto.CreateOrderRequest) (*string, *string, float64, error)
 	GetOrder(ctx context.Context, reqData *dto.GetOrderRequest) (*entity.Order, error)
 	ListOrders(ctx context.Context, reqData *dto.ListOrderRequest) ([]*entity.Order, int32, error)
+	CancelOrder(ctx context.Context, reqData *dto.CancelOrderRequest) error
 }
 
 type KafkaProducer interface {
@@ -31,7 +32,8 @@ type orderService struct {
 }
 
 type Options struct {
-	TopicOrderCreated string `yaml:"topic_order_created"`
+	TopicOrderCreated  string `yaml:"topic_order_created"`
+	TopicOrderCanceled string `yaml:"topic_order_canceled"`
 }
 
 func InitOrderService(orderRepository order.OrderRepositoryItf, userClientConn *grpc.ClientConn, productClientConn *grpc.ClientConn, kafkaProducer KafkaProducer) OrderServiceItf {

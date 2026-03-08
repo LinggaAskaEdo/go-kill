@@ -5,6 +5,7 @@ import (
 
 	orderpb "github.com/linggaaskaedo/go-kill/common/pkg/proto/order"
 	"github.com/linggaaskaedo/go-kill/order-service/src/internal/model/dto"
+	"github.com/linggaaskaedo/go-kill/order-service/src/internal/util"
 )
 
 func (g *Grpc) CreateOrder(ctx context.Context, req *orderpb.CreateOrderRequest) (*orderpb.CreateOrderResponse, error) {
@@ -13,7 +14,7 @@ func (g *Grpc) CreateOrder(ctx context.Context, req *orderpb.CreateOrderRequest)
 		ShippingAddressID: req.ShippingAddressId,
 		BillingAddressID:  req.BillingAddressId,
 		PaymentMethod:     req.PaymentMethod,
-		Items:             itemsToDTO(req.Items),
+		Items:             util.ToOrderItemDTO(req.Items),
 	}
 
 	orderID, orderNumber, totalAmount, err := g.svc.Order.CreateOrder(ctx, reqData)
@@ -45,7 +46,7 @@ func (g *Grpc) GetOrder(ctx context.Context, req *orderpb.GetOrderRequest) (*ord
 		OrderNumber: order.OrderNumber,
 		Status:      string(order.Status),
 		TotalAmount: order.TotalAmount,
-		Items:       itemsToPB(order.Items),
+		Items:       util.ToOrderItemDetailPB(order.Items),
 	}, nil
 }
 
@@ -72,11 +73,22 @@ func (g *Grpc) ListOrders(ctx context.Context, req *orderpb.ListOrdersRequest) (
 	}
 
 	return &orderpb.ListOrdersResponse{
-		Orders: ordersToPB(orders),
+		Orders: util.ToGetOrderResponsePB(orders),
 		Total:  total,
 	}, nil
 }
 
 func (g *Grpc) CancelOrder(ctx context.Context, req *orderpb.CancelOrderRequest) (*orderpb.CancelOrderResponse, error) {
-	return nil, nil
+	reqData := &dto.CancelOrderRequest{
+		OrderID: req.OrderId,
+		UserID:  req.UserId,
+		Reason:  req.Reason,
+	}
+
+	err := g.svc.Order.CancelOrder(ctx, reqData)
+	if err != nil {
+		return nil, err
+	}
+
+	return &orderpb.CancelOrderResponse{Success: true}, nil
 }

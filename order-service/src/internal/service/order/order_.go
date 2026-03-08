@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	x "github.com/linggaaskaedo/go-kill/common/pkg/errors"
 	productpb "github.com/linggaaskaedo/go-kill/common/pkg/proto/product"
 	userpb "github.com/linggaaskaedo/go-kill/common/pkg/proto/user"
@@ -152,7 +153,7 @@ func (s *orderService) publishOrderEvent(
 
 	eventBytes, err := json.Marshal(event)
 	if err != nil {
-		return x.New("Failed to marshal event", err)
+		return x.New("Failed to marshal event order creation", err)
 	}
 
 	partition, offset, err := s.kafkaProducer.SendMessage(s.orderOptions.TopicOrderCreated, []byte(event.Data.UserID), eventBytes)
@@ -171,4 +172,39 @@ func (s *orderService) GetOrder(ctx context.Context, reqData *dto.GetOrderReques
 
 func (s *orderService) ListOrders(ctx context.Context, reqData *dto.ListOrderRequest) ([]*entity.Order, int32, error) {
 	return s.orderRepository.ListOrders(ctx, reqData)
+}
+
+func (s *orderService) CancelOrder(ctx context.Context, reqData *dto.CancelOrderRequest) error {
+	err := s.orderRepository.CancelOrder(ctx, reqData)
+	if err != nil {
+		return err
+	}
+
+	// Publish cancellation event
+	event := dto.OrderEvent{
+		EventID:   uuid.New().String(),
+		EventType: "order.cancelled",
+		Version:   "1.0",
+		Timestamp: time.Now(),
+		Source:    "order-service",
+		Data: dto.OrderData{
+			OrderID: reqData.OrderID,
+			UserID:  reqData.UserID,
+			Status:  "cancelled",
+		},
+	}
+
+	eventBytes, err := json.Marshal(event)
+	if err != nil {
+		return x.New("Failed to marshal event order cancellation", err)
+	}
+
+	partition, offset, err := s.kafkaProducer.SendMessage(s.orderOptions.TopicOrderCanceled, []byte(event.Data.UserID), eventBytes)
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("Failed to send Kafka message")
+	} else {
+		zerolog.Ctx(ctx).Debug().Int32("partition", partition).Int64("offset", offset).Msg("Kafka message sent")
+	}
+
+	return nil
 }
