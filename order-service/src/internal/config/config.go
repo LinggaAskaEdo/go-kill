@@ -9,6 +9,7 @@ import (
 	"github.com/linggaaskaedo/go-kill/common/component/kafkaproducer"
 	"github.com/linggaaskaedo/go-kill/common/component/query"
 	"github.com/linggaaskaedo/go-kill/common/pkg/logger"
+	"github.com/linggaaskaedo/go-kill/order-service/src/internal/service"
 
 	"github.com/goccy/go-yaml"
 )
@@ -20,6 +21,8 @@ type Config struct {
 	KafkaProducer kafkaproducer.Config         `yaml:"kafka_produce"`
 	GRPCClient    map[string]grpcclient.Config `yaml:"grpc_client"`
 	GRPCServer    grpcserver.Config            `yaml:"grpc_server"`
+
+	Service service.Options `yaml:"service"`
 }
 
 func Load(configPath string) (*Config, error) {

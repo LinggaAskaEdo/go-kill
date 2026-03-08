@@ -23,6 +23,10 @@ database:
 queries:
   path: ./etc/sql/
 
+service:
+  order:
+    topic_order_created: order.created
+
 kafka_produce:
   brokers:
     - localhost:9092

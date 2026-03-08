@@ -5,6 +5,7 @@ import (
 
 	"github.com/linggaaskaedo/go-kill/common/component/database"
 	"github.com/linggaaskaedo/go-kill/common/component/grpcclient"
+	"github.com/linggaaskaedo/go-kill/common/component/kafkaproducer"
 	"github.com/linggaaskaedo/go-kill/common/component/query"
 	grpcHandler "github.com/linggaaskaedo/go-kill/order-service/src/internal/handler/grpc"
 	"github.com/linggaaskaedo/go-kill/order-service/src/internal/repository"
@@ -19,6 +20,7 @@ type ServiceComponent struct {
 	queryComp         *query.QueryComponent
 	userClientComp    *grpcclient.GRPCClientComponent
 	productClientComp *grpcclient.GRPCClientComponent
+	kafkaProducerComp *kafkaproducer.KafkaProducerComponent
 
 	repo        *repository.Repository
 	service     *service.Service
@@ -32,6 +34,7 @@ func NewServiceComponent(
 	queryComp *query.QueryComponent,
 	userClientComp *grpcclient.GRPCClientComponent,
 	productClientComp *grpcclient.GRPCClientComponent,
+	kafkaProducerComp *kafkaproducer.KafkaProducerComponent,
 ) *ServiceComponent {
 	return &ServiceComponent{
 		log:               log,
@@ -39,13 +42,14 @@ func NewServiceComponent(
 		queryComp:         queryComp,
 		userClientComp:    userClientComp,
 		productClientComp: productClientComp,
+		kafkaProducerComp: kafkaProducerComp,
 		ready:             make(chan struct{}),
 	}
 }
 
 func (s *ServiceComponent) Start(ctx context.Context) error {
-	s.repo = repository.InitRepository(s.dbComp0.Client(), s.queryComp)
-	s.service = service.InitService(s.userClientComp.Conn(), s.productClientComp.Conn(), s.repo)
+	s.repo = repository.InitRepository(s.dbComp0.Client(), s.queryComp, s.productClientComp.Conn())
+	s.service = service.InitService(s.repo, s.userClientComp.Conn(), s.productClientComp.Conn(), s.kafkaProducerComp)
 	s.grpcHandler = grpcHandler.InitGrpcHandler(s.log, s.service)
 
 	close(s.ready) // signal that service is ready
