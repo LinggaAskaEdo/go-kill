@@ -3,6 +3,7 @@ package mongo
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/rs/zerolog"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -11,9 +12,10 @@ import (
 )
 
 type Config struct {
-	Host     string `yaml:"host"`
-	Port     string `yaml:"port"`
-	Database string `yaml:"database"`
+	Host     string        `yaml:"host"`
+	Port     string        `yaml:"port"`
+	Database string        `yaml:"database"`
+	Timeout  time.Duration `yaml:"timeout"`
 }
 
 type MongoDBComponent struct {
@@ -39,12 +41,15 @@ func (m *MongoDBComponent) Start(ctx context.Context) error {
 	uri := fmt.Sprintf("mongodb://%s:%s", m.cfg.Host, m.cfg.Port)
 	clientOpts := options.Client().ApplyURI(uri)
 
+	if m.cfg.Timeout > 0 {
+		clientOpts.SetConnectTimeout(m.cfg.Timeout)
+	}
+
 	client, err := mongo.Connect(clientOpts)
 	if err != nil {
 		return fmt.Errorf("mongo connect: %w", err)
 	}
 
-	// Ping to verify connection
 	if err := client.Ping(ctx, readpref.Primary()); err != nil {
 		return fmt.Errorf("mongo ping: %w", err)
 	}
