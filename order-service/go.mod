@@ -4,7 +4,7 @@ go 1.25.8
 
 require (
 	github.com/google/uuid v1.6.0
-	github.com/linggaaskaedo/go-kill/common v1.9.0
+	github.com/linggaaskaedo/go-kill/common v1.9.1
 	github.com/swaggo/swag v1.16.6
 	golang.org/x/sync v0.20.0
 )
