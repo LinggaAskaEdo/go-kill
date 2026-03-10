@@ -12,11 +12,15 @@ import (
 )
 
 type Config struct {
-	Brokers       []string      `yaml:"brokers"`
-	GroupID       string        `yaml:"group_id"`
-	Topics        []string      `yaml:"topics"`
-	Timeout       time.Duration `yaml:"timeout"`
-	InitialOffset int64         `yaml:"initial_offset"`
+	Brokers                        []string      `yaml:"brokers"`
+	GroupID                        string        `yaml:"group_id"`
+	Topics                         []string      `yaml:"topics"`
+	InitialOffset                  int64         `yaml:"initial_offset"`
+	DialTimeout                    time.Duration `yaml:"dial_timeout"`
+	ReadTimeout                    time.Duration `yaml:"read_timeout"`
+	WriteTimeout                   time.Duration `yaml:"write_timeout"`
+	ConsumerGroupSessionTimeout    time.Duration `yaml:"consumer_group_session_timeout"`
+	ConsumerGroupHeartbeatInterval time.Duration `yaml:"consumer_group_heartbeat_interval"`
 }
 
 type KafkaConsumerComponent struct {
@@ -39,6 +43,7 @@ func NewKafkaConsumerComponent(log zerolog.Logger, cfg Config, handler sarama.Co
 
 func (k *KafkaConsumerComponent) Start(ctx context.Context) error {
 	config := sarama.NewConfig()
+
 	// Use GroupStrategies instead of deprecated Strategy
 	config.Consumer.Group.Rebalance.GroupStrategies = []sarama.BalanceStrategy{
 		sarama.NewBalanceStrategyRoundRobin(),
@@ -49,7 +54,12 @@ func (k *KafkaConsumerComponent) Start(ctx context.Context) error {
 	} else {
 		config.Consumer.Offsets.Initial = k.cfg.InitialOffset
 	}
-	config.Net.DialTimeout = k.cfg.Timeout
+
+	config.Net.DialTimeout = k.cfg.DialTimeout
+	config.Net.ReadTimeout = k.cfg.ReadTimeout
+	config.Net.WriteTimeout = k.cfg.WriteTimeout
+	config.Consumer.Group.Session.Timeout = k.cfg.ConsumerGroupSessionTimeout
+	config.Consumer.Group.Heartbeat.Interval = k.cfg.ConsumerGroupHeartbeatInterval
 
 	group, err := sarama.NewConsumerGroup(k.cfg.Brokers, k.cfg.GroupID, config)
 	if err != nil {
