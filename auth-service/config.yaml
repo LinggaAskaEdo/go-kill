@@ -43,7 +43,7 @@ queries:
 
 service:
   auth:
-    jwt_secret: ${JWT_SECRET}
+    jwt_secret: ${JWT_SECRET_GO_KILL}
 
 grpc_server:
   port: ":8081"
