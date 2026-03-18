@@ -103,6 +103,7 @@ func (k *KafkaConsumerComponent) runConsumerLoop(ctx context.Context) {
 		if err == nil {
 			// Normal exit (e.g., after rebalance) – reset backoff and continue
 			attempt = 0
+			time.Sleep(baseDelay)
 			continue
 		}
 
@@ -134,9 +135,9 @@ func exponentialBackoff(base, max time.Duration, attempt int) time.Duration {
 	if attempt < 0 {
 		return base
 	}
-	// Use math.Pow for safe exponentiation (avoids integer shift issues)
 	factor := math.Pow(2, float64(attempt))
-	delay := float64(base) * factor * (0.5 + rand.Float64())
+	jitter := 0.5 + rand.Float64()*0.5 // 50-100% of calculated delay
+	delay := float64(base) * factor * jitter
 	if delay > float64(max) {
 		delay = float64(max)
 	}

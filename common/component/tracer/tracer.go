@@ -12,6 +12,14 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.39.0"
 )
 
+type Config struct {
+	ServiceName    string        `yaml:"service_name"`
+	ServiceVersion string        `yaml:"service_version"`
+	Endpoint       string        `yaml:"endpoint"`
+	Insecure       bool          `yaml:"insecure"`
+	Timeout        time.Duration `yaml:"timeout"`
+}
+
 type Tracer interface {
 	Stop(ctx context.Context) error
 }
@@ -21,14 +29,13 @@ type tracerImpl struct {
 	provider *sdktrace.TracerProvider
 }
 
-func Init(log zerolog.Logger) Tracer {
+func Init(log zerolog.Logger, cfg Config) Tracer {
 	ctx := context.Background()
 
-	// Create resource with service information
 	res, err := resource.New(ctx,
 		resource.WithAttributes(
-			semconv.ServiceName("go-far-app"),
-			semconv.ServiceVersion("1.0.0"),
+			semconv.ServiceName(cfg.ServiceName),
+			semconv.ServiceVersion(cfg.ServiceVersion),
 		),
 	)
 	if err != nil {
@@ -36,18 +43,16 @@ func Init(log zerolog.Logger) Tracer {
 		return nil
 	}
 
-	// Create OTLP exporter
 	exporter, err := otlptracegrpc.New(ctx,
-		otlptracegrpc.WithEndpoint("localhost:4317"),
+		otlptracegrpc.WithEndpoint(cfg.Endpoint),
 		otlptracegrpc.WithInsecure(),
-		otlptracegrpc.WithTimeout(5*time.Second),
+		otlptracegrpc.WithTimeout(cfg.Timeout),
 	)
 	if err != nil {
 		log.Panic().Err(err).Msg("Failed to create OTLP exporter for tracer")
 		return nil
 	}
 
-	// Create tracer provider
 	tp := sdktrace.NewTracerProvider(
 		sdktrace.WithBatcher(exporter,
 			sdktrace.WithBatchTimeout(5*time.Second),
@@ -57,7 +62,6 @@ func Init(log zerolog.Logger) Tracer {
 		sdktrace.WithSampler(sdktrace.AlwaysSample()),
 	)
 
-	// Set global tracer provider
 	otel.SetTracerProvider(tp)
 
 	log.Print("Tracer initialized successfully")

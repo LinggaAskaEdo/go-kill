@@ -24,7 +24,9 @@ func AttachKeyValCtx(ctx context.Context, pairs ...any) context.Context {
 
 func GetCtxKeyVal(c *gin.Context, key preference.CtxKey) string {
 	if val := c.Request.Context().Value(key); val != nil {
-		return val.(string)
+		if str, ok := val.(string); ok {
+			return str
+		}
 	}
 
 	return ""

@@ -53,10 +53,6 @@ func (c *GRPCClientComponent) Start(ctx context.Context) error {
 
 	c.conn = client
 
-	// Start connection
-	client.Connect()
-
-	// Wait for connection to become ready, or timeout
 	waitCtx, cancel := context.WithTimeout(ctx, c.cfg.Timeout)
 	defer cancel()
 
@@ -67,7 +63,6 @@ func (c *GRPCClientComponent) Start(ctx context.Context) error {
 		}
 
 		if !client.WaitForStateChange(waitCtx, state) {
-			// Timeout or context cancelled
 			client.Close()
 			return fmt.Errorf("timeout waiting for connection to %s", c.cfg.Target)
 		}

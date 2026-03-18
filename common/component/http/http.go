@@ -19,7 +19,11 @@ func Init(log zerolog.Logger, middleware middleware.Middleware, cfg Config) *gin
 
 	router := gin.New()
 	router.Use(middleware.Recovery())
-	router.Use(otelgin.Middleware(cfg.AppName))
+
+	if cfg.AppName != "" {
+		router.Use(otelgin.Middleware(cfg.AppName))
+	}
+
 	router.Use(middleware.Handler())
 	router.Use(middleware.CORS())
 

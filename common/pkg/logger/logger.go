@@ -13,6 +13,7 @@ import (
 )
 
 var onceLogger = sync.Once{}
+var globalLogger zerolog.Logger
 
 type Config struct {
 	Enabled    bool   `yaml:"enabled"`
@@ -27,8 +28,6 @@ type Config struct {
 }
 
 func Init(cfg Config) zerolog.Logger {
-	var log zerolog.Logger
-
 	onceLogger.Do(func() {
 		zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
 		zerolog.TimeFieldFormat = time.RFC3339
@@ -55,7 +54,7 @@ func Init(cfg Config) zerolog.Logger {
 			output = zerolog.MultiLevelWriter(os.Stderr, fileLogger)
 		}
 
-		log = zerolog.New(output).
+		globalLogger = zerolog.New(output).
 			Level(zerolog.Level(logLevel)).
 			With().
 			Timestamp().
@@ -63,5 +62,5 @@ func Init(cfg Config) zerolog.Logger {
 			Logger()
 	})
 
-	return log
+	return globalLogger
 }

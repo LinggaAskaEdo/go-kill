@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
+	"sync"
 	"text/template"
 
 	"github.com/rs/zerolog"
@@ -17,19 +19,22 @@ type Config struct {
 }
 
 type QueryComponent struct {
-	log     zerolog.Logger
-	cfg     Config
-	queries map[string]string
-	ready   chan struct{}
+	log       zerolog.Logger
+	cfg       Config
+	queries   map[string]string
+	templates map[string]*template.Template
+	ready     chan struct{}
+	mu        sync.RWMutex
 }
 
 // NewQueryComponent creates a new component but does not load queries yet.
 func NewQueryComponent(log zerolog.Logger, cfg Config) *QueryComponent {
 	return &QueryComponent{
-		log:     log,
-		cfg:     cfg,
-		queries: make(map[string]string),
-		ready:   make(chan struct{}),
+		log:       log,
+		cfg:       cfg,
+		queries:   make(map[string]string),
+		templates: make(map[string]*template.Template),
+		ready:     make(chan struct{}),
 	}
 }
 
@@ -110,14 +115,25 @@ func (qc *QueryComponent) Get(name string) (string, bool) {
 // ExecuteTemplate processes a named query with the given data,
 // converting named placeholders ($key) to positional parameters ($1, $2, …).
 func (qc *QueryComponent) ExecuteTemplate(name string, data any) (string, []any, error) {
-	queryTemplate, ok := qc.Get(name)
-	if !ok {
-		return "", nil, fmt.Errorf("query %s not found", name)
-	}
+	qc.mu.RLock()
+	tmpl, exists := qc.templates[name]
+	qc.mu.RUnlock()
 
-	tmpl, err := template.New(name).Parse(queryTemplate)
-	if err != nil {
-		return "", nil, err
+	if !exists {
+		queryTemplate, ok := qc.Get(name)
+		if !ok {
+			return "", nil, fmt.Errorf("query %s not found", name)
+		}
+
+		var err error
+		tmpl, err = template.New(name).Parse(queryTemplate)
+		if err != nil {
+			return "", nil, err
+		}
+
+		qc.mu.Lock()
+		qc.templates[name] = tmpl
+		qc.mu.Unlock()
 	}
 
 	var buf bytes.Buffer
@@ -129,7 +145,7 @@ func (qc *QueryComponent) ExecuteTemplate(name string, data any) (string, []any,
 	return convertNamedToPositional(query, data)
 }
 
-// convertNamedToPositional replaces $key placeholders with $1, $2, … and builds the args slice.
+// convertNamedToPositional replaces $key placeholders with $1, $2, … in the order they appear.
 // It expects data to be a map[string]any.
 func convertNamedToPositional(query string, data any) (string, []any, error) {
 	paramMap, ok := data.(map[string]any)
@@ -137,19 +153,31 @@ func convertNamedToPositional(query string, data any) (string, []any, error) {
 		return "", nil, fmt.Errorf("data must be map[string]any for named parameter conversion")
 	}
 
-	args := make([]any, 0)
-	paramIndex := 1
+	re := regexp.MustCompile(`\$([a-zA-Z_][a-zA-Z0-9_]*)`)
+	matches := re.FindAllStringSubmatchIndex(query, -1)
+
+	if len(matches) == 0 {
+		return query, nil, nil
+	}
+
+	args := make([]any, 0, len(matches))
 	result := query
 
-	// Replace each $key with $N and collect values in order
-	for key, value := range paramMap {
-		placeholder := "$" + key
-		if strings.Contains(result, placeholder) {
-			positional := fmt.Sprintf("$%d", paramIndex)
-			result = strings.ReplaceAll(result, placeholder, positional)
-			args = append(args, value)
-			paramIndex++
+	for _, match := range matches {
+		fullStart := match[0]
+		fullEnd := match[1]
+		keyStart := match[2]
+		keyEnd := match[3]
+
+		key := query[keyStart:keyEnd]
+		value, exists := paramMap[key]
+		if !exists {
+			return "", nil, fmt.Errorf("parameter $%s not found in data", key)
 		}
+
+		positional := fmt.Sprintf("$%d", len(args)+1)
+		result = result[:fullStart] + positional + result[fullEnd:]
+		args = append(args, value)
 	}
 
 	return result, args, nil

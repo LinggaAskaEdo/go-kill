@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 	"strings"
 	"time"
 
@@ -69,11 +70,19 @@ func (d *DatabaseComponent) Start(ctx context.Context) error {
 
 	d.db = db
 
-	// Configure connection pool
-	d.db.SetMaxOpenConns(d.cfg.MaxOpenConns)
-	d.db.SetMaxIdleConns(d.cfg.MaxIdleConns)
-	d.db.SetConnMaxLifetime(d.cfg.ConnMaxLifetime)
-	d.db.SetConnMaxIdleTime(d.cfg.ConnMaxIdleTime)
+	// Validate and configure connection pool
+	if d.cfg.MaxOpenConns > 0 {
+		d.db.SetMaxOpenConns(d.cfg.MaxOpenConns)
+	}
+	if d.cfg.MaxIdleConns > 0 {
+		d.db.SetMaxIdleConns(d.cfg.MaxIdleConns)
+	}
+	if d.cfg.ConnMaxLifetime > 0 {
+		d.db.SetConnMaxLifetime(d.cfg.ConnMaxLifetime)
+	}
+	if d.cfg.ConnMaxIdleTime > 0 {
+		d.db.SetConnMaxIdleTime(d.cfg.ConnMaxIdleTime)
+	}
 
 	close(d.ready) // signal readiness
 	d.log.Debug().Msgf("%s database connected and ping OK", strings.ToUpper(d.cfg.Driver))
@@ -103,6 +112,8 @@ func (d *DatabaseComponent) Stop(ctx context.Context) error {
 // getURI constructs the driver name and connection string based on config.
 // It is a slightly modified version of your existing getURI.
 func (d *DatabaseComponent) getURI(cfg Config) (string, string, error) {
+	encode := func(s string) string { return url.QueryEscape(s) }
+
 	switch cfg.Driver {
 	case preference.POSTGRES:
 		ssl := "disable"
@@ -110,7 +121,8 @@ func (d *DatabaseComponent) getURI(cfg Config) (string, string, error) {
 			ssl = "require"
 		}
 
-		uri := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s", cfg.Host, cfg.Port, cfg.User, cfg.Password, cfg.DBName, ssl)
+		uri := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+			cfg.Host, cfg.Port, encode(cfg.User), encode(cfg.Password), cfg.DBName, ssl)
 		return cfg.Driver, uri, nil
 
 	case preference.MYSQL:
@@ -119,11 +131,13 @@ func (d *DatabaseComponent) getURI(cfg Config) (string, string, error) {
 			tls = "true"
 		}
 
-		uri := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?tls=%s&parseTime=true", cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.DBName, tls)
+		uri := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?tls=%s&parseTime=true",
+			encode(cfg.User), encode(cfg.Password), cfg.Host, cfg.Port, cfg.DBName, tls)
 		return cfg.Driver, uri, nil
 
 	case preference.MARIADB:
-		uri := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.DBName)
+		uri := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s",
+			encode(cfg.User), encode(cfg.Password), cfg.Host, cfg.Port, cfg.DBName)
 		return preference.MYSQL, uri, nil // Even using MariaDB, the driver is only registered using mysql name
 
 	default:

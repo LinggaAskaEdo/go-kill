@@ -12,10 +12,13 @@ import (
 )
 
 type Config struct {
-	Host     string        `yaml:"host"`
-	Port     string        `yaml:"port"`
-	Database string        `yaml:"database"`
-	Timeout  time.Duration `yaml:"timeout"`
+	Host       string        `yaml:"host"`
+	Port       string        `yaml:"port"`
+	Database   string        `yaml:"database"`
+	Username   string        `yaml:"username"`
+	Password   string        `yaml:"password"`
+	AuthSource string        `yaml:"auth_source"`
+	Timeout    time.Duration `yaml:"timeout"`
 }
 
 type MongoDBComponent struct {
@@ -38,7 +41,17 @@ func NewMongoDBComponent(log zerolog.Logger, cfg Config) *MongoDBComponent {
 // Start establishes the MongoDB connection, pings the server, and stores the client and database.
 // It blocks until the context is cancelled.
 func (m *MongoDBComponent) Start(ctx context.Context) error {
-	uri := fmt.Sprintf("mongodb://%s:%s", m.cfg.Host, m.cfg.Port)
+	var uri string
+	if m.cfg.Username != "" {
+		authSource := m.cfg.AuthSource
+		if authSource == "" {
+			authSource = m.cfg.Database
+		}
+		uri = fmt.Sprintf("mongodb://%s:%s@%s:%s/%s?authSource=%s",
+			m.cfg.Username, m.cfg.Password, m.cfg.Host, m.cfg.Port, m.cfg.Database, authSource)
+	} else {
+		uri = fmt.Sprintf("mongodb://%s:%s/%s", m.cfg.Host, m.cfg.Port, m.cfg.Database)
+	}
 	clientOpts := options.Client().ApplyURI(uri)
 
 	if m.cfg.Timeout > 0 {
@@ -58,7 +71,7 @@ func (m *MongoDBComponent) Start(ctx context.Context) error {
 	m.db = client.Database(m.cfg.Database)
 
 	close(m.ready) // signal readiness
-	m.log.Debug().Str("uri", uri).Str("database", m.cfg.Database).Msg("MongoDB connected")
+	m.log.Debug().Str("host", m.cfg.Host).Str("database", m.cfg.Database).Msg("MongoDB connected")
 	<-ctx.Done() // Block until shutdown signal
 	m.log.Debug().Msg("MongoDB component context cancelled – stopping")
 

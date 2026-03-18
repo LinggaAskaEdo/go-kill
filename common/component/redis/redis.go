@@ -14,6 +14,7 @@ type Config struct {
 	Network         string        `yaml:"network"`
 	Address         string        `yaml:"address"`
 	Password        string        `yaml:"password"`
+	DB              int           `yaml:"db"`
 	CacheTTL        time.Duration `yaml:"cache_ttl"`
 	MaxRetries      int           `yaml:"max_retries"`
 	MinRetryBackoff time.Duration `yaml:"min_retry_backoff"`
@@ -31,27 +32,14 @@ type Config struct {
 type RedisComponent struct {
 	log    zerolog.Logger
 	cfg    Config
-	db     int
 	ready  chan struct{}
 	client *redis.Client
 }
 
-func NewRedisComponent(log zerolog.Logger, cfg Config, redisType string) *RedisComponent {
-	var db int
-
-	switch redisType {
-	case "apps":
-		db = 0
-	case "auth":
-		db = 11
-	default:
-		db = 13
-	}
-
+func NewRedisComponent(log zerolog.Logger, cfg Config) *RedisComponent {
 	return &RedisComponent{
 		log:   log,
 		cfg:   cfg,
-		db:    db,
 		ready: make(chan struct{}),
 	}
 }
@@ -65,7 +53,7 @@ func (r *RedisComponent) Start(ctx context.Context) error {
 		Network:         r.cfg.Network,
 		Addr:            r.cfg.Address,
 		Password:        r.cfg.Password,
-		DB:              r.db,
+		DB:              r.cfg.DB,
 		MaxRetries:      r.cfg.MaxRetries,
 		MinRetryBackoff: r.cfg.MinRetryBackoff,
 		MaxRetryBackoff: r.cfg.MaxRetryBackoff,

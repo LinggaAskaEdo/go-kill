@@ -87,10 +87,13 @@ func (mw *middleware) Handler() gin.HandlerFunc {
 }
 
 func (mw *middleware) attachLogger(ctx context.Context) context.Context {
+	reqID := ""
+	if id, ok := ctx.Value(preference.CONTEXT_KEY_REQ_ID).(string); ok {
+		reqID = id
+	}
+
 	return mw.log.With().
-		// Str(string(preference.CONTEXT_KEY_TRACE_ID), ctx.Value(preference.CONTEXT_KEY_TRACE_ID).(string)).
-		// Str(string(preference.CONTEXT_KEY_SPAN_ID), ctx.Value(preference.CONTEXT_KEY_SPAN_ID).(string)).
-		Str(string(preference.CONTEXT_KEY_REQ_ID), ctx.Value(preference.CONTEXT_KEY_REQ_ID).(string)).
+		Str(string(preference.CONTEXT_KEY_REQ_ID), reqID).
 		Logger().
 		WithContext(ctx)
 }
