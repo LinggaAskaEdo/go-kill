@@ -35,6 +35,7 @@ A distributed microservices architecture built with GoLang implementing:
 ---
 
 ## Architecture Diagram
+
 ```mermaid
 graph TD
     Gateway["API Gateway<br/>(JWT Validation Layer)"]
