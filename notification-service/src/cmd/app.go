@@ -60,7 +60,7 @@ func main() {
 	appMainComp := app.New(app.WithShutdownTimeout(15*time.Second), app.WithLogger(log))
 
 	// Initialize redis component
-	redisComp0 := redis.NewRedisComponent(log, cfg.Redis, "apps")
+	redisComp0 := redis.NewRedisComponent(log, cfg.Redis)
 	appSubComp.Add(redisComp0, 10*time.Second)
 
 	// Initialize database component

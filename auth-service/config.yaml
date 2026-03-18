@@ -14,6 +14,7 @@ redis:
   network: tcp
   address: "localhost:6379"
   password: ""
+  db: 1
   cache_ttl: 60s
   max_retries: 3
   min_retry_backoff: 8ms
