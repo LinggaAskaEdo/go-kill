@@ -17,7 +17,7 @@ type (
 	ServiceType  int
 	Code         = stacktrace.ErrorCode
 	ErrorMessage map[Code]Message
-	Message struct {
+	Message      struct {
 		StatusCode    int    `json:"status_code"`
 		EN            string `json:"en"`
 		ID            string `json:"id"`
@@ -97,4 +97,11 @@ const (
 	CodeCacheLockFailed
 	CodeCacheInvalidCastType
 	CodeCacheNotFound
+)
+
+const (
+	CodeConsumerRetryExhausted = Code(iota + 500)
+	CodeConsumerDLQPublish
+	CodeConsumerProcessMessage
+	CodeConsumerUnmarshal
 )

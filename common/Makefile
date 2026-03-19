@@ -35,7 +35,7 @@ proto: ## Compile proto file
 	done
 	@echo "Protobuf files generated successfully"
 
-build: clean update proto ## Build the application
+build: clean proto ## Build the application
 	@echo "Building application..."
 	@go mod tidy
 	@echo "Build complete"

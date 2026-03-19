@@ -69,6 +69,10 @@ func (k *KafkaProducerComponent) Ready() <-chan struct{} {
 	return k.ready
 }
 
+func (k *KafkaProducerComponent) Producer() sarama.SyncProducer {
+	return k.producer
+}
+
 // SendMessage sends a message to the specified topic.
 // Safe to call only after the component is ready.
 func (k *KafkaProducerComponent) SendMessage(topic string, key, value []byte) (partition int32, offset int64, err error) {
