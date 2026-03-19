@@ -17,7 +17,6 @@ func (r *analyticsRepository) updateOrderMongo(ctx context.Context, date time.Ti
 	hour := event.Timestamp.Hour()
 	collection := r.mongo0.Collection(r.analyticsOptions.OrderCollection)
 
-	// Update daily metrics
 	filter := bson.M{"date": date}
 	update := bson.M{
 		"$inc": bson.M{
@@ -26,8 +25,12 @@ func (r *analyticsRepository) updateOrderMongo(ctx context.Context, date time.Ti
 			fmt.Sprintf("hourly_breakdown.%d.orders", hour):  1,
 			fmt.Sprintf("hourly_breakdown.%d.revenue", hour): event.Data.TotalAmount,
 		},
+		"$setOnInsert": bson.M{
+			"created_at": time.Now(),
+		},
 		"$set": bson.M{
-			"updated_at": time.Now(),
+			"updated_at":                  time.Now(),
+			"metrics.average_order_value": 0,
 		},
 	}
 
@@ -37,18 +40,16 @@ func (r *analyticsRepository) updateOrderMongo(ctx context.Context, date time.Ti
 		return err
 	}
 
-	// If it was an insert, initialize hourly breakdown
 	if result.UpsertedCount > 0 {
-		r.initializeHourlyBreakdown(ctx, collection, date)
+		if err := r.initializeHourlyBreakdown(ctx, collection, date); err != nil {
+			zerolog.Ctx(ctx).Error().Err(err).Msg("Failed to initialize hourly breakdown")
+		}
 	}
-
-	// Recalculate average order value
-	r.recalculateAverageOrderValue(ctx, collection, date)
 
 	return nil
 }
 
-func (r *analyticsRepository) initializeHourlyBreakdown(ctx context.Context, collection *mongo.Collection, date time.Time) {
+func (r *analyticsRepository) initializeHourlyBreakdown(ctx context.Context, collection *mongo.Collection, date time.Time) error {
 	hourlyData := make([]dto.HourlyMetrics, 24)
 	for i := range 24 {
 		hourlyData[i] = dto.HourlyMetrics{
@@ -66,35 +67,7 @@ func (r *analyticsRepository) initializeHourlyBreakdown(ctx context.Context, col
 	}
 
 	_, err := collection.UpdateOne(ctx, filter, update)
-	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("Failed to initialize hourly breakdown")
-	}
-}
-
-func (r *analyticsRepository) recalculateAverageOrderValue(ctx context.Context, collection *mongo.Collection, date time.Time) {
-	var analytics dto.OrderAnalytics
-
-	err := collection.FindOne(ctx, bson.M{"date": date}).Decode(&analytics)
-	if err != nil {
-		return
-	}
-
-	if analytics.Metrics.TotalOrders > 0 {
-		avgOrderValue := analytics.Metrics.TotalRevenue / float64(analytics.Metrics.TotalOrders)
-
-		_, err := collection.UpdateOne(
-			ctx,
-			bson.M{"date": date},
-			bson.M{
-				"$set": bson.M{
-					"metrics.average_order_value": avgOrderValue,
-				},
-			},
-		)
-		if err != nil {
-			zerolog.Ctx(ctx).Error().Err(err).Msg("Failed to recalculate average order value")
-		}
-	}
+	return err
 }
 
 func (r *analyticsRepository) getOrderMongo(ctx context.Context, date time.Time) (*dto.OrderAnalytics, error) {
@@ -106,12 +79,21 @@ func (r *analyticsRepository) getOrderMongo(ctx context.Context, date time.Time)
 		return nil, err
 	}
 
+	if analytics.Metrics.TotalOrders > 0 {
+		analytics.Metrics.AverageOrderVal = analytics.Metrics.TotalRevenue / float64(analytics.Metrics.TotalOrders)
+	}
+
 	return &analytics, nil
 }
 
 func (r *analyticsRepository) updateProductMongo(ctx context.Context, date time.Time, event dto.OrderEvent) error {
+	if len(event.Data.Items) == 0 {
+		return nil
+	}
+
 	collection := r.mongo0.Collection(r.analyticsOptions.ProductCollection)
 
+	var operations []mongo.WriteModel
 	for _, item := range event.Data.Items {
 		filter := bson.M{
 			"product_id": item.ProductID,
@@ -127,11 +109,22 @@ func (r *analyticsRepository) updateProductMongo(ctx context.Context, date time.
 				"product_name": item.ProductName,
 				"updated_at":   time.Now(),
 			},
+			"$setOnInsert": bson.M{
+				"created_at": time.Now(),
+			},
 		}
 
-		_, err := collection.UpdateOne(ctx, filter, update, options.UpdateOne().SetUpsert(true))
-		if err != nil {
-			zerolog.Ctx(ctx).Error().Err(err).Str("productID", item.ProductID).Msg("Failed to update product analytics")
+		operations = append(operations, mongo.NewUpdateOneModel().
+			SetFilter(filter).
+			SetUpdate(update).
+			SetUpsert(true))
+	}
+
+	opts := options.BulkWrite().SetOrdered(false)
+	_, err := collection.BulkWrite(ctx, operations, opts)
+	if err != nil {
+		if !mongo.IsDuplicateKeyError(err) {
+			zerolog.Ctx(ctx).Error().Err(err).Msg("Failed to bulk update product analytics")
 			return err
 		}
 	}

@@ -22,7 +22,11 @@ func (r *analyticsRepository) updateOrderCache(ctx context.Context, date time.Ti
 		"cancelled_orders":    analytics.Metrics.CancelledOrders,
 	}
 
-	jsonData, _ := json.Marshal(cacheData)
+	jsonData, err := json.Marshal(cacheData)
+	if err != nil {
+		return x.WrapWithCode(err, x.CodeCacheMarshal, "failed to marshal cache data")
+	}
+
 	if err := r.redis0.Set(ctx, key, jsonData, 24*time.Hour).Err(); err != nil {
 		return x.WrapWithCode(err, x.CodeCacheSetSimpleKey, "Failed update order cache")
 	}

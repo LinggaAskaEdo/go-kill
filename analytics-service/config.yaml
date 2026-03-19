@@ -61,3 +61,9 @@ kafka_consumer:
   write_timeout: 10s
   consumer_group_session_timeout: 20s
   consumer_group_heartbeat_interval: 6s
+
+kafka_producer:
+  brokers:
+    - localhost:9092
+  retry_max: 3
+  timeout: 5s
