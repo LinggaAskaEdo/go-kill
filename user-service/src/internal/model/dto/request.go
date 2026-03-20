@@ -8,7 +8,7 @@ type RegisterUserRequest struct {
 }
 
 type CreateUserAddress struct {
-	AddressType   string `json:"address_type" binding:"required"`
+	AddressType   string `json:"address_type" binding:"required,oneof=shipping billing both"`
 	StreetAddress string `json:"street_address" binding:"required"`
 	City          string `json:"city" binding:"required"`
 	State         string `json:"state"`

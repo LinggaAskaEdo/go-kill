@@ -9,6 +9,9 @@ CREATE TABLE users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE INDEX idx_users_auth_id ON users(auth_id);
+CREATE INDEX idx_users_email ON users(email);
 -- +goose StatementEnd
 
 -- +goose Down

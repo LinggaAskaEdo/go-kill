@@ -7,7 +7,7 @@ import (
 )
 
 type Grpc struct {
-	userpb.UserServiceServer
+	userpb.UnimplementedUserServiceServer
 	log zerolog.Logger
 	svc *service.Service
 }

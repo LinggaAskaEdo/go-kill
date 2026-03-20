@@ -28,7 +28,7 @@ func (s *userService) RegisterUser(ctx context.Context, req dto.RegisterUserRequ
 	}
 
 	user := &entity.User{
-		AutdID:    authResp.AuthId,
+		AuthID:    authResp.AuthId,
 		Email:     req.Email,
 		FirstName: req.FirstName,
 		LastName:  req.LastName,
@@ -52,7 +52,12 @@ func (s *userService) GetMe(ctx context.Context, userAuthID string) (*dto.UserRe
 }
 
 func (s *userService) GetActivities(ctx context.Context, userAuthID string, page string, limit string) (*dto.UserActivity, error) {
-	resp, total, err := s.userRepository.GetActivities(ctx, userAuthID, page, limit)
+	user, err := s.userRepository.GetMe(ctx, userAuthID)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, total, err := s.userRepository.GetActivities(ctx, user.ID, page, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -68,22 +73,33 @@ func (s *userService) GetActivities(ctx context.Context, userAuthID string, page
 	}, nil
 }
 
-func (s *userService) GetAddresses(ctx context.Context, userAuthID string) ([]*dto.Address, error) {
-	addresses, err := s.userRepository.GetUserAddresses(ctx, userAuthID)
+func (s *userService) GetAddresses(ctx context.Context, userAuthID string, page string, limit string) (*dto.AddressesResp, error) {
+	user, err := s.userRepository.GetMe(ctx, userAuthID)
 	if err != nil {
 		return nil, err
 	}
 
-	return toAddresses(addresses), nil
+	addresses, total, err := s.userRepository.GetUserAddresses(ctx, user.ID, page, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	return &dto.AddressesResp{
+		Success: true,
+		Data:    toAddresses(addresses),
+		Pagination: dto.Pagination{
+			Page:  page,
+			Limit: limit,
+			Total: total,
+		},
+	}, nil
 }
 
 func (s *userService) CreateAddress(ctx context.Context, userAuthID string, req dto.CreateUserAddress) (string, error) {
-	var result string
-
-	result, err := s.userRepository.CreateAddress(ctx, userAuthID, req)
+	user, err := s.userRepository.GetMe(ctx, userAuthID)
 	if err != nil {
-		return result, err
+		return "", err
 	}
 
-	return result, nil
+	return s.userRepository.CreateAddress(ctx, user.ID, req)
 }

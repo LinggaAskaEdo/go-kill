@@ -3,11 +3,13 @@ package entity
 import (
 	"database/sql"
 	"time"
+
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 type User struct {
 	ID        string `db:"id" json:"id"`
-	AutdID    string `db:"auth_id" json:"auth_id"`
+	AuthID    string `db:"auth_id" json:"auth_id"`
 	Email     string `db:"email" json:"email"`
 	FirstName string `db:"first_name" json:"first_name"`
 	LastName  string `db:"last_name" json:"last_name"`
@@ -16,11 +18,11 @@ type User struct {
 }
 
 type UserActivity struct {
+	ID           bson.ObjectID          `bson:"_id,omitempty"`
 	UserID       string                 `bson:"user_id"`
 	ActivityType string                 `bson:"activity_type"`
 	Metadata     map[string]interface{} `bson:"metadata"`
 	Timestamp    time.Time              `bson:"timestamp"`
-	CreatedAt    time.Time              `bson:"created_at"`
 }
 
 type UserAddress struct {

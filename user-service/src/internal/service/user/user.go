@@ -24,7 +24,7 @@ type UserServiceItf interface {
 	RegisterUser(ctx context.Context, req dto.RegisterUserRequest) (*dto.UserRegResp, error)
 	GetMe(ctx context.Context, userAuthID string) (*dto.UserResp, error)
 	GetActivities(ctx context.Context, userAuthID string, page string, limit string) (*dto.UserActivity, error)
-	GetAddresses(ctx context.Context, userAuthID string) ([]*dto.Address, error)
+	GetAddresses(ctx context.Context, userAuthID string, page string, limit string) (*dto.AddressesResp, error)
 	CreateAddress(ctx context.Context, userAuthID string, req dto.CreateUserAddress) (string, error)
 }
 
@@ -47,7 +47,7 @@ func toUserRegResp(u *entity.User) *dto.UserRegResp {
 
 	return &dto.UserRegResp{
 		ID:        u.ID,
-		AutdID:    u.AutdID,
+		AuthID:    u.AuthID,
 		Email:     u.Email,
 		FirstName: u.FirstName,
 		LastName:  u.LastName,
@@ -81,7 +81,7 @@ func toAddresses(addresses []*entity.UserAddress) []*dto.Address {
 			AddressType:   address.AddressType,
 			StreetAddress: address.StreetAddress,
 			City:          address.City,
-			State:         address.State,
+			State:         address.State.String,
 			PostalCode:    address.PostalCode,
 			Country:       address.Country,
 			IsDefault:     address.IsDefault,

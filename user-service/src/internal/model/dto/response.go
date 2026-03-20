@@ -1,8 +1,6 @@
 package dto
 
 import (
-	"database/sql"
-
 	x "github.com/linggaaskaedo/go-kill/common/pkg/errors"
 	"github.com/linggaaskaedo/go-kill/user-service/src/internal/model/entity"
 )
@@ -35,7 +33,7 @@ type UserResp struct {
 
 type UserRegResp struct {
 	ID        string `json:"id"`
-	AutdID    string `json:"auth_id"`
+	AuthID    string `json:"auth_id"`
 	Email     string `json:"email"`
 	FirstName string `json:"first_name"`
 	LastName  string `json:"last_name"`
@@ -50,12 +48,18 @@ type UserActivity struct {
 }
 
 type Address struct {
-	ID            string         `json:"id"`
-	AddressType   string         `json:"address_type"`
-	StreetAddress string         `json:"street_address"`
-	City          string         `json:"city"`
-	State         sql.NullString `json:"state,omitempty"`
-	PostalCode    string         `json:"postal_code"`
-	Country       string         `json:"country"`
-	IsDefault     bool           `json:"is_default"`
+	ID            string `json:"id"`
+	AddressType   string `json:"address_type"`
+	StreetAddress string `json:"street_address"`
+	City          string `json:"city"`
+	State         string `json:"state,omitempty"`
+	PostalCode    string `json:"postal_code"`
+	Country       string `json:"country"`
+	IsDefault     bool   `json:"is_default"`
+}
+
+type AddressesResp struct {
+	Success    bool       `json:"success"`
+	Data       []*Address `json:"data"`
+	Pagination Pagination `json:"pagination"`
 }

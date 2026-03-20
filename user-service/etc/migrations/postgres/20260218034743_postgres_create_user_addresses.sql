@@ -16,6 +16,8 @@ CREATE TABLE user_addresses (
 );
 
 CREATE INDEX idx_user_addresses_user_id ON user_addresses(user_id);
+CREATE UNIQUE INDEX idx_user_addresses_default_per_user ON user_addresses(user_id) WHERE is_default = true;
+CREATE INDEX idx_user_addresses_user_default_created ON user_addresses(user_id, is_default DESC, created_at DESC);
 -- +goose StatementEnd
 
 -- +goose Down

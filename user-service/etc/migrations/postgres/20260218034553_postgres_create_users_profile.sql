@@ -11,6 +11,8 @@ CREATE TABLE user_profiles (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
+CREATE INDEX idx_user_profiles_user_id ON user_profiles(user_id);
 -- +goose StatementEnd
 
 -- +goose Down

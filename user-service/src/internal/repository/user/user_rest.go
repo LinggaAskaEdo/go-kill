@@ -3,6 +3,7 @@ package user
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	x "github.com/linggaaskaedo/go-kill/common/pkg/errors"
 	"github.com/linggaaskaedo/go-kill/user-service/src/internal/model/dto"
@@ -20,13 +21,17 @@ func (u *userRepository) RegisterUser(ctx context.Context, user *entity.User) (*
 
 	tx, user, err = u.registerUserSQL(ctx, tx, user)
 	if err != nil {
-		_ = tx.Rollback()
+		if rbErr := tx.Rollback(); rbErr != nil && rbErr != sql.ErrTxDone {
+			zerolog.Ctx(ctx).Error().Err(rbErr).Msg("rollback_register_user")
+		}
 		return user, err
 	}
 
 	tx, err = u.registerUserProfileSQL(ctx, tx, user.ID)
 	if err != nil {
-		_ = tx.Rollback()
+		if rbErr := tx.Rollback(); rbErr != nil && rbErr != sql.ErrTxDone {
+			zerolog.Ctx(ctx).Error().Err(rbErr).Msg("rollback_register_user_profile")
+		}
 		return user, err
 	}
 
@@ -44,46 +49,30 @@ func (u *userRepository) RegisterUser(ctx context.Context, user *entity.User) (*
 		"registration_method": "email",
 	}
 
-	err = u.logActivityMongo(ctx, user.ID, "registration", metadata)
-	if err != nil {
-		return user, err
+	mongoCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err = u.logActivityMongo(mongoCtx, user.ID, "registration", metadata); err != nil {
+		zerolog.Ctx(ctx).Warn().
+			Err(err).
+			Str("user_id", user.ID).
+			Msg("failed to log registration activity (non-fatal)")
 	}
 
 	return user, nil
 }
 
 func (u *userRepository) GetMe(ctx context.Context, userAuthID string) (*entity.User, error) {
-	user, err := u.getUserByAuthIDSQL(ctx, userAuthID)
-	if err != nil {
-		return nil, err
-	}
-
-	return u.getUserByIDSQL(ctx, user.ID)
+	return u.getUserByAuthIDSQL(ctx, userAuthID)
 }
 
-func (u *userRepository) GetActivities(ctx context.Context, userAuthID string, page string, limit string) ([]*entity.UserActivity, int64, error) {
-	user, err := u.getUserByAuthIDSQL(ctx, userAuthID)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	return u.getUserActivitiesMongo(ctx, user.ID, page, limit)
+func (u *userRepository) GetActivities(ctx context.Context, userID string, page string, limit string) ([]*entity.UserActivity, int64, error) {
+	return u.getUserActivitiesMongo(ctx, userID, page, limit)
 }
 
-func (u *userRepository) GetUserAddresses(ctx context.Context, userAuthID string) ([]*entity.UserAddress, error) {
-	user, err := u.getUserByAuthIDSQL(ctx, userAuthID)
-	if err != nil {
-		return nil, err
-	}
-
-	return u.getUserAddressesSQL(ctx, user.ID)
+func (u *userRepository) GetUserAddresses(ctx context.Context, userID string, page string, limit string) ([]*entity.UserAddress, int64, error) {
+	return u.getUserAddressesByUserIDSQL(ctx, userID, page, limit)
 }
 
-func (u *userRepository) CreateAddress(ctx context.Context, userAuthID string, req dto.CreateUserAddress) (string, error) {
-	user, err := u.getUserByAuthIDSQL(ctx, userAuthID)
-	if err != nil {
-		return "", err
-	}
-
-	return u.createUserAddressSQL(ctx, user.ID, req)
+func (u *userRepository) CreateAddress(ctx context.Context, userID string, req dto.CreateUserAddress) (string, error) {
+	return u.createUserAddressSQL(ctx, userID, req)
 }

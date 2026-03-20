@@ -22,9 +22,9 @@ type UserRepositoryItf interface {
 	// REST
 	RegisterUser(ctx context.Context, user *entity.User) (*entity.User, error)
 	GetMe(ctx context.Context, userAuthID string) (*entity.User, error)
-	GetActivities(ctx context.Context, userAuthID string, page string, limit string) ([]*entity.UserActivity, int64, error)
-	GetUserAddresses(ctx context.Context, userAuthID string) ([]*entity.UserAddress, error)
-	CreateAddress(ctx context.Context, userAuthID string, req dto.CreateUserAddress) (string, error)
+	GetActivities(ctx context.Context, userID string, page string, limit string) ([]*entity.UserActivity, int64, error)
+	GetUserAddresses(ctx context.Context, userID string, page string, limit string) ([]*entity.UserAddress, int64, error)
+	CreateAddress(ctx context.Context, userID string, req dto.CreateUserAddress) (string, error)
 }
 
 type userRepository struct {

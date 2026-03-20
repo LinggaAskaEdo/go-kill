@@ -60,8 +60,10 @@ func (e *rest) handleGetActivities(c *gin.Context) {
 func (e *rest) handleGetAddresses(c *gin.Context) {
 	ctx := c.Request.Context()
 	userAuthID := c.GetString("user_auth_id")
+	page := c.DefaultQuery("page", "1")
+	limit := c.DefaultQuery("limit", "20")
 
-	resp, err := e.svc.User.GetAddresses(ctx, userAuthID)
+	resp, err := e.svc.User.GetAddresses(ctx, userAuthID, page, limit)
 	if err != nil {
 		e.httpRespError(c, err)
 		return

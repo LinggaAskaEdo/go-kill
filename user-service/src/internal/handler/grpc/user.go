@@ -11,7 +11,11 @@ func (g *Grpc) CreateUser(ctx context.Context, req *userpb.CreateUserRequest) (*
 }
 
 func (g *Grpc) GetUser(ctx context.Context, req *userpb.GetUserRequest) (*userpb.GetUserResponse, error) {
-	return g.svc.User.GetUser(ctx, req)
+	resp, err := g.svc.User.GetUser(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
 }
 
 func (g *Grpc) GetAddress(ctx context.Context, req *userpb.GetAddressRequest) (*userpb.GetAddressResponse, error) {

@@ -1,7 +1,6 @@
 package rest
 
 import (
-	"context"
 	"net/http"
 	"sync"
 
@@ -40,8 +39,16 @@ func (e *rest) authMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		// Validate with Auth Service
-		resp, err := e.svc.User.ValidateToken(context.Background(), &authpb.ValidateTokenRequest{Token: authHeader[7:]})
+		const bearerPrefix = "Bearer "
+		if len(authHeader) < len(bearerPrefix) || authHeader[:len(bearerPrefix)] != bearerPrefix {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid authorization header format"})
+			c.Abort()
+			return
+		}
+
+		token := authHeader[len(bearerPrefix):]
+
+		resp, err := e.svc.User.ValidateToken(c.Request.Context(), &authpb.ValidateTokenRequest{Token: token})
 		if err != nil || !resp.Valid {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
 			c.Abort()
@@ -55,7 +62,6 @@ func (e *rest) authMiddleware() gin.HandlerFunc {
 }
 
 func (e *rest) Serve() {
-	// User
 	e.gin.POST("/api/v1/users/register", e.handleRegister)
 	e.gin.GET("/api/v1/users/me", e.authMiddleware(), e.handleGetMe)
 	e.gin.GET("/api/v1/users/me/activities", e.authMiddleware(), e.handleGetActivities)

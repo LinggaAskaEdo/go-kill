@@ -8,22 +8,29 @@ INSERT INTO user_profiles (user_id, created_at, updated_at)
 VALUES ($1, NOW(), NOW());
 
 -- name: GetUserByAuthID
-SELECT id, email, first_name, last_name
+SELECT id, auth_id, email, first_name, last_name, created_at, updated_at
 FROM users
 WHERE auth_id = $1;
 
 -- name: GetUserByID
-SELECT id, email, first_name, last_name
+SELECT id, auth_id, email, first_name, last_name, created_at, updated_at
 FROM users
 WHERE id = $1;
 
 -- name: GetUserAddressByID
-SELECT id, user_id, street_address, city, state, postal_code, country 
-FROM user_addresses 
+SELECT id, user_id, address_type, street_address, city, state, postal_code, country, is_default
+FROM user_addresses
 WHERE id = $1 AND user_id = $2;
 
 -- name: GetUserAddresses
-SELECT id, address_type, street_address, city, state, postal_code, country, is_default
+SELECT id, user_id, address_type, street_address, city, state, postal_code, country, is_default
+FROM user_addresses
+WHERE user_id = $1
+ORDER BY is_default DESC, created_at DESC
+LIMIT $2 OFFSET $3;
+
+-- name: CountUserAddresses
+SELECT COUNT(*)
 FROM user_addresses
 WHERE user_id = $1;
 
