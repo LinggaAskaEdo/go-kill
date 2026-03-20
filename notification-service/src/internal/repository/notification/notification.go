@@ -3,6 +3,8 @@ package notification
 import (
 	"context"
 	"fmt"
+	"strings"
+	"time"
 
 	"github.com/linggaaskaedo/go-kill/notification-service/src/internal/model/dto"
 
@@ -25,15 +27,22 @@ type notificationRepository struct {
 }
 
 type Options struct {
-	Notifications           string `yaml:"notifications"`
-	NotificationPreferences string `yaml:"notification_preferences"`
-	NotificationTemplates   string `yaml:"notification_templates"`
+	Notifications           string        `yaml:"notifications"`
+	NotificationPreferences string        `yaml:"notification_preferences"`
+	NotificationTemplates   string        `yaml:"notification_templates"`
+	RateLimit               RateLimitOpts `yaml:"rate_limit"`
 }
 
-func InitNotificationRepository(redis0 *redis.Client, mongo0 *mongo.Database) NotificationRepositoryItf {
+type RateLimitOpts struct {
+	MaxPerHour int           `yaml:"max_per_hour"`
+	Window     time.Duration `yaml:"window"`
+}
+
+func InitNotificationRepository(redis0 *redis.Client, mongo0 *mongo.Database, opts Options) NotificationRepositoryItf {
 	return &notificationRepository{
 		redis0: redis0,
 		mongo0: mongo0,
+		opts:   opts,
 	}
 }
 
@@ -41,18 +50,8 @@ func replaceTemplate(template string, vars map[string]string) string {
 	result := template
 	for key, value := range vars {
 		placeholder := fmt.Sprintf("{{%s}}", key)
-		result = replaceAll(result, placeholder, value)
+		result = strings.ReplaceAll(result, placeholder, value)
 	}
 
 	return result
-}
-
-func replaceAll(s, old, new string) string {
-	for i := 0; i < len(s); i++ {
-		if len(s[i:]) >= len(old) && s[i:i+len(old)] == old {
-			return s[:i] + new + replaceAll(s[i+len(old):], old, new)
-		}
-	}
-
-	return s
 }

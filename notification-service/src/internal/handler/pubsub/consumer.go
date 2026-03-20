@@ -3,9 +3,9 @@ package pubsub
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"errors"
+	"time"
 
-	x "github.com/linggaaskaedo/go-kill/common/pkg/errors"
 	"github.com/linggaaskaedo/go-kill/notification-service/src/internal/model/dto"
 	"github.com/linggaaskaedo/go-kill/notification-service/src/internal/service"
 
@@ -36,33 +36,33 @@ func (h *ConsumerGroupHandler) Cleanup(sarama.ConsumerGroupSession) error {
 
 func (h *ConsumerGroupHandler) ConsumeClaim(sess sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	for msg := range claim.Messages() {
-		// 1. Extract or generate a request ID (correlation ID)
-		reqID := extractReqIDFromMessage(msg) // see helper below
-		if reqID == "" {
-			reqID = xid.New().String()
-		}
-
-		// 2. Create a context with the request ID and a logger
-		ctx := context.Background()
-
-		// 3. Create a logger with the request ID
-		logWithReq := h.log.With().Str("req_id", reqID).Logger()
-		ctx = logWithReq.WithContext(ctx)
-
-		// 4. Process the message using the service (which now can use zerolog.Ctx(ctx))
-		zerolog.Ctx(ctx).Info().Str("topic", msg.Topic).Bytes("value", msg.Value).Msg("received message")
-		// h.processMessage(ctx, msg)
-		if err := h.processMessage(ctx, msg); err != nil {
-			zerolog.Ctx(ctx).Error().Err(err).Msg("failed to process message")
-		} else {
-			zerolog.Ctx(ctx).Info().Msg("message processed successfully")
-		}
-
-		// 5. Mark the message as consumed
-		sess.MarkMessage(msg, "")
+		h.processMessageWithContext(sess, msg)
 	}
 
 	return nil
+}
+
+func (h *ConsumerGroupHandler) processMessageWithContext(sess sarama.ConsumerGroupSession, msg *sarama.ConsumerMessage) {
+	reqID := extractReqIDFromMessage(msg)
+	if reqID == "" {
+		reqID = xid.New().String()
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	logWithReq := h.log.With().Str("req_id", reqID).Logger()
+	ctx = logWithReq.WithContext(ctx)
+
+	zerolog.Ctx(ctx).Info().Str("topic", msg.Topic).Msg("received message")
+
+	if err := h.processMessage(ctx, msg); err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("failed to process message, will retry")
+		return
+	}
+
+	zerolog.Ctx(ctx).Info().Msg("message processed successfully")
+	sess.MarkMessage(msg, "")
 }
 
 func extractReqIDFromMessage(msg *sarama.ConsumerMessage) string {
@@ -82,19 +82,23 @@ func (h *ConsumerGroupHandler) processMessage(ctx context.Context, msg *sarama.C
 		return err
 	}
 
-	zerolog.Ctx(ctx).Info().Msg(fmt.Sprintf("Processing %s event for order %s", event.EventType, event.Data.OrderID))
+	zerolog.Ctx(ctx).Info().Str("event_type", event.EventType).Str("order_id", event.Data.OrderID).Msg("processing event")
 
-	// Check user preferences (error ignored as in original)
-	prefs, _ := h.service.Notification.GetUserPreference(ctx, event.Data.UserID)
-
-	// Check rate limit
-	if !h.service.Notification.CheckRateLimit(ctx, event.Data.UserID) {
-		errStr := fmt.Sprintf("Rate limit exceeded for user %s", event.Data.UserID)
-		zerolog.Ctx(ctx).Error().Msg(errStr)
-		return x.New(errStr)
+	prefs, err := h.service.Notification.GetUserPreference(ctx, event.Data.UserID)
+	if err != nil {
+		zerolog.Ctx(ctx).Warn().Err(err).Str("user_id", event.Data.UserID).Msg("failed to get user preferences, using defaults")
+		prefs = dto.NotificationPreferences{
+			EmailEnabled: true,
+			PushEnabled:  true,
+		}
 	}
 
-	// Process based on event type – each case now only calls the helper
+	if !h.service.Notification.CheckRateLimit(ctx, event.Data.UserID) {
+		errStr := "rate limit exceeded for user " + event.Data.UserID
+		zerolog.Ctx(ctx).Warn().Msg(errStr)
+		return errors.New(errStr)
+	}
+
 	switch event.EventType {
 	case "order.created":
 		h.sendNotificationIfEnabled(ctx, prefs.EmailEnabled,
@@ -105,6 +109,8 @@ func (h *ConsumerGroupHandler) processMessage(ctx context.Context, msg *sarama.C
 	case "order.cancelled":
 		h.sendNotificationIfEnabled(ctx, prefs.EmailEnabled,
 			func() error { return h.service.Notification.SendOrderCancellation(ctx, event) }, "failed to send order cancellation")
+	default:
+		zerolog.Ctx(ctx).Warn().Str("event_type", event.EventType).Msg("unknown event type, skipping")
 	}
 
 	return nil

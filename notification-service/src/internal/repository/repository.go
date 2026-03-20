@@ -15,11 +15,12 @@ type Options struct {
 	NotificationOpts notification.Options `yaml:"notification"`
 }
 
-func InitRepository(redis0 *redis.Client, mongo0 *mongo.Database) *Repository {
+func InitRepository(redis0 *redis.Client, mongo0 *mongo.Database, opts Options) *Repository {
 	return &Repository{
 		Notification: notification.InitNotificationRepository(
 			redis0,
 			mongo0,
+			opts.NotificationOpts,
 		),
 	}
 }

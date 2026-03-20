@@ -19,7 +19,7 @@ func (s *notificationService) SendOrderConfirmation(ctx context.Context, event d
 }
 
 func (s *notificationService) SendOrderUpdate(ctx context.Context, event dto.OrderEvent) error {
-	return s.notificationRepository.SendOrderConfirmation(ctx, event)
+	return s.notificationRepository.SendOrderUpdate(ctx, event)
 }
 
 func (s *notificationService) SendOrderCancellation(ctx context.Context, event dto.OrderEvent) error {

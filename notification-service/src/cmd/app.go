@@ -41,7 +41,7 @@ func main() {
 	flag.IntVar(&maxJitter, "maxSleep", DefaultMaxJitter, "max. sleep duration during app initialization")
 	flag.Parse()
 
-	// Add sleep with Jitter to drag the the initialization time among instances
+	// Add sleep with jitter to stagger initialization time among instances
 	sleepWithJitter(minJitter, maxJitter)
 
 	// Load config
@@ -95,8 +95,29 @@ func main() {
 	}
 
 	// Now build the service component (which depends on database, mongo, query, etc.)
-	serviceComp := config.NewServiceComponent(log, redisComp0, mongoComp0)
-	appMainComp.Add(serviceComp, 10*time.Second)
+	serviceComp := config.NewServiceComponent(log, redisComp0, mongoComp0, cfg.Repository)
+
+	// Start service component manually before creating consumer (needs service to be initialized)
+	indepGroup.Go(func() error {
+		return serviceComp.Start(indepCtx)
+	})
+
+	// Wait for service to be ready
+	select {
+	case <-serviceComp.Ready():
+		log.Info().Str("component", fmt.Sprintf("%T", serviceComp)).Msg("ready")
+	case <-time.After(10 * time.Second):
+		log.Fatal().Msgf("timeout waiting for component %T", serviceComp)
+	}
+
+	// Ensure service component is stopped on exit
+	defer func() {
+		stopCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err := serviceComp.Stop(stopCtx); err != nil {
+			log.Error().Err(err).Msg("error stopping service component")
+		}
+	}()
 
 	// Build Kafka consumer
 	consumerHandler := pubsub.NewConsumerGroupHandler(log, serviceComp.Service())

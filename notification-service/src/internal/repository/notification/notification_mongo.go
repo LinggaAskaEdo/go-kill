@@ -40,7 +40,7 @@ func (r *notificationRepository) sendOrderConfirmationMongo(ctx context.Context,
 		ctx,
 		bson.M{"template_id": "order_confirmation_v1", "type": "email", "active": true},
 	).Decode(&template); err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("Template not foun")
+		zerolog.Ctx(ctx).Error().Err(err).Msg("Template not found")
 
 		template.Subject = "Order Confirmation - {{order_number}}"
 		template.Body = "Your order {{order_number}} has been confirmed. Total: ${{total_amount}}"
@@ -77,7 +77,7 @@ func (r *notificationRepository) sendOrderConfirmationMongo(ctx context.Context,
 		CreatedAt: time.Now(),
 	}
 
-	_, err := r.mongo0.Collection(r.opts.Notifications).InsertOne(context.Background(), notification)
+	_, err := r.mongo0.Collection(r.opts.Notifications).InsertOne(ctx, notification)
 	if err != nil {
 		errStr := "Failed when sendOrderConfirmationMongo"
 		zerolog.Ctx(ctx).Error().Err(err).Msg(errStr)
@@ -106,7 +106,7 @@ func (r *notificationRepository) sendOrderUpdateMongo(ctx context.Context, event
 		CreatedAt: time.Now(),
 	}
 
-	_, err := r.mongo0.Collection(r.opts.Notifications).InsertOne(context.Background(), notification)
+	_, err := r.mongo0.Collection(r.opts.Notifications).InsertOne(ctx, notification)
 	if err != nil {
 		errStr := "Failed when sendOrderUpdateMongo"
 		zerolog.Ctx(ctx).Error().Err(err).Msg(errStr)
@@ -134,7 +134,7 @@ func (r *notificationRepository) sendOrderCancellationMongo(ctx context.Context,
 		CreatedAt: time.Now(),
 	}
 
-	_, err := r.mongo0.Collection("notifications").InsertOne(context.Background(), notification)
+	_, err := r.mongo0.Collection(r.opts.Notifications).InsertOne(ctx, notification)
 	if err != nil {
 		errStr := "Failed when sendOrderCancellationMongo"
 		zerolog.Ctx(ctx).Error().Err(err).Msg(errStr)

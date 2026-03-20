@@ -43,6 +43,9 @@ repository:
     notifications: notifications
     notification_preferences: notification_preferences
     notification_templates: notification_templates
+    rate_limit:
+      max_per_hour: 10
+      window: 1h
 
 kafka_consumer:
   brokers:
