@@ -132,7 +132,7 @@ func main() {
 	httpServerComp := server.NewHTTPServerComponent(log, cfg.Server, mw, gin, func(ctx context.Context, engine *server.Engine) error {
 		select {
 		case <-serviceComp.Ready():
-			restHandler.InitRestHandler(engine, serviceComp.Service(), serviceComp.GrpcHandler())
+			restHandler.InitRestHandler(engine, serviceComp.Service(), serviceComp.GrpcHandler(), cfg.Service.AuthOpts.JwtSecret)
 			return nil
 		case <-ctx.Done():
 			return ctx.Err()

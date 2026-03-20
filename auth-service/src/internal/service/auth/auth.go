@@ -5,18 +5,16 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/linggaaskaedo/go-kill/auth-service/src/internal/model/dto"
 	"github.com/linggaaskaedo/go-kill/auth-service/src/internal/repository/auth"
-	authpb "github.com/linggaaskaedo/go-kill/common/pkg/proto/auth"
-
-	"golang.org/x/crypto/bcrypt"
 )
 
 type AuthServiceItf interface {
-	CreateAuthUser(ctx context.Context, req *authpb.CreateAuthUserRequest) (*authpb.CreateAuthUserResponse, error)
-	Login(ctx context.Context, req *authpb.LoginRequest) (*authpb.LoginResponse, error)
-	ValidateToken(ctx context.Context, req *authpb.ValidateTokenRequest) (*authpb.ValidateTokenResponse, error)
-	RefreshToken(ctx context.Context, req *authpb.RefreshTokenRequest) (*authpb.RefreshTokenResponse, error)
-	Logout(ctx context.Context, req *authpb.LogoutRequest) (*authpb.LogoutResponse, error)
+	CreateAuthUser(ctx context.Context, req *dto.CreateAuthUserRequest) (*dto.CreateAuthUserResponse, error)
+	Login(ctx context.Context, req *dto.LoginRequest) (*dto.LoginResponse, error)
+	ValidateToken(ctx context.Context, req *dto.ValidateTokenRequest) (*dto.ValidateTokenResponse, error)
+	RefreshToken(ctx context.Context, req *dto.RefreshTokenRequest) (*dto.RefreshTokenResponse, error)
+	Logout(ctx context.Context, req *dto.LogoutRequest) (*dto.LogoutResponse, error)
 }
 
 type authService struct {
@@ -41,9 +39,4 @@ func generateTokenID() string {
 
 func generateRefreshToken() string {
 	return fmt.Sprintf("refresh-%d-%d", time.Now().UnixNano(), time.Now().Unix())
-}
-
-func hashToken(token string) string {
-	hash, _ := bcrypt.GenerateFromPassword([]byte(token), 10)
-	return string(hash)
 }

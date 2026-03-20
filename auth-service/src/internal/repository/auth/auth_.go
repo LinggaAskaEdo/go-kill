@@ -2,18 +2,19 @@ package auth
 
 import (
 	"context"
+	"fmt"
 	"time"
 
-	"github.com/golang-jwt/jwt/v5"
+	"github.com/linggaaskaedo/go-kill/auth-service/src/internal/model/dto"
 	"github.com/linggaaskaedo/go-kill/auth-service/src/internal/model/entity"
 	x "github.com/linggaaskaedo/go-kill/common/pkg/errors"
-	authpb "github.com/linggaaskaedo/go-kill/common/pkg/proto/auth"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/rs/zerolog"
 	"golang.org/x/crypto/bcrypt"
 )
 
-func (a *authRepository) CreateAuthUser(ctx context.Context, req *authpb.CreateAuthUserRequest) (string, error) {
+func (a *authRepository) CreateAuthUser(ctx context.Context, req *dto.CreateAuthUserRequest) (string, error) {
 	var authID string
 
 	emailExists, err := a.checkUserExistSql(ctx, req.Email)
@@ -75,7 +76,7 @@ func (a *authRepository) GetUserInfo(ctx context.Context, refreshToken string) (
 
 	result, err := a.getUserByIDSql(ctx, userID)
 	if err != nil {
-		return nil, nil
+		return nil, err
 	}
 
 	return result, nil
@@ -106,6 +107,25 @@ func (a *authRepository) ClearSession(ctx context.Context, userID string) error 
 	if err != nil {
 		return err
 	}
+
+	return nil
+}
+
+func (a *authRepository) RotateRefreshToken(ctx context.Context, userID string, oldRefreshToken string, newRefreshToken string, expired time.Time) error {
+	err := a.deleteRefreshTokenByTokenSql(ctx, oldRefreshToken)
+	if err != nil {
+		return err
+	}
+
+	err = a.storeRefreshTokenSql(ctx, userID, newRefreshToken, expired)
+	if err != nil {
+		return err
+	}
+
+	hashedOldToken := hashToken(oldRefreshToken)
+	hashedNewToken := hashToken(newRefreshToken)
+	a.redis0.Del(ctx, fmt.Sprintf("refresh:%s", hashedOldToken))
+	a.redis0.Set(ctx, fmt.Sprintf("refresh:%s", hashedNewToken), userID, time.Hour*24*7)
 
 	return nil
 }

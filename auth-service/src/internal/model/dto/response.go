@@ -22,3 +22,33 @@ type HttpSuccessResp struct {
 type HTTPErrorResp struct {
 	Meta Meta `json:"metadata"`
 }
+
+type CreateAuthUserResponse struct {
+	Success bool   `json:"success"`
+	AuthId  string `json:"auth_id"`
+}
+
+type LoginResponse struct {
+	Success      bool   `json:"success"`
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+	ExpiresIn    int64  `json:"expires_in"`
+}
+
+type ValidateTokenResponse struct {
+	Valid  bool   `json:"valid"`
+	UserId string `json:"user_id"`
+	Email  string `json:"email"`
+}
+
+type RefreshTokenResponse struct {
+	Success      bool   `json:"success"`
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+	ExpiresIn    int64  `json:"expires_in"`
+}
+
+type LogoutResponse struct {
+	Success bool   `json:"success"`
+	Message string `json:"message"`
+}

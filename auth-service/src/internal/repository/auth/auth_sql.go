@@ -99,3 +99,15 @@ func (a *authRepository) deleteRefreshTokenSql(ctx context.Context, userID strin
 
 	return nil
 }
+
+func (a *authRepository) deleteRefreshTokenByTokenSql(ctx context.Context, refreshToken string) error {
+	hashedToken := hashToken(refreshToken)
+	query, _ := a.queryLoader.Get("DeleteRefreshTokenByToken")
+	_, err := a.db0.ExecContext(ctx, query, hashedToken)
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("delete_refresh_token_by_token_sql")
+		return x.WrapWithCode(err, x.CodeSQLRowScan, "delete_refresh_token_by_token_sql")
+	}
+
+	return nil
+}

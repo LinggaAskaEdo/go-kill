@@ -4,27 +4,27 @@ import (
 	"context"
 	"time"
 
+	"github.com/linggaaskaedo/go-kill/auth-service/src/internal/model/dto"
 	x "github.com/linggaaskaedo/go-kill/common/pkg/errors"
-	authpb "github.com/linggaaskaedo/go-kill/common/pkg/proto/auth"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/rs/zerolog"
 	"golang.org/x/crypto/bcrypt"
 )
 
-func (a *authService) CreateAuthUser(ctx context.Context, req *authpb.CreateAuthUserRequest) (*authpb.CreateAuthUserResponse, error) {
+func (a *authService) CreateAuthUser(ctx context.Context, req *dto.CreateAuthUserRequest) (*dto.CreateAuthUserResponse, error) {
 	authID, err := a.authRepository.CreateAuthUser(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
-	return &authpb.CreateAuthUserResponse{
+	return &dto.CreateAuthUserResponse{
 		Success: true,
 		AuthId:  authID,
 	}, nil
 }
 
-func (a *authService) Login(ctx context.Context, req *authpb.LoginRequest) (*authpb.LoginResponse, error) {
+func (a *authService) Login(ctx context.Context, req *dto.LoginRequest) (*dto.LoginResponse, error) {
 	userAuth, err := a.authRepository.FindAuthUserByEmail(ctx, req.Email)
 	if err != nil {
 		return nil, err
@@ -35,13 +35,11 @@ func (a *authService) Login(ctx context.Context, req *authpb.LoginRequest) (*aut
 		return nil, x.New("User is not active")
 	}
 
-	// Verify password
 	err = bcrypt.CompareHashAndPassword([]byte(userAuth.PasswordHash), []byte(req.Password))
 	if err != nil {
 		return nil, x.Wrap(err, "Invalid email or password")
 	}
 
-	// Generate JWT token
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"sub":   userAuth.ID,
 		"email": userAuth.Email,
@@ -55,16 +53,14 @@ func (a *authService) Login(ctx context.Context, req *authpb.LoginRequest) (*aut
 		return nil, x.Wrap(err, "Failed to generate token")
 	}
 
-	// Generate refresh token
 	refreshToken := generateRefreshToken()
 
-	//  Store refresh token in DB and session in Redis
-	err = a.authRepository.StoreSession(ctx, userAuth.ID, hashToken(refreshToken), time.Now().Add(time.Hour*24*7), userAuth.Email, req.IpAddress)
+	err = a.authRepository.StoreSession(ctx, userAuth.ID, refreshToken, time.Now().Add(time.Hour*24*7), userAuth.Email, req.IpAddress)
 	if err != nil {
 		return nil, err
 	}
 
-	return &authpb.LoginResponse{
+	return &dto.LoginResponse{
 		Success:      true,
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
@@ -72,38 +68,57 @@ func (a *authService) Login(ctx context.Context, req *authpb.LoginRequest) (*aut
 	}, nil
 }
 
-func (a *authService) ValidateToken(ctx context.Context, req *authpb.ValidateTokenRequest) (*authpb.ValidateTokenResponse, error) {
+func (a *authService) ValidateToken(ctx context.Context, req *dto.ValidateTokenRequest) (*dto.ValidateTokenResponse, error) {
 	token, err := jwt.Parse(req.Token, func(token *jwt.Token) (any, error) { return []byte(a.authOptions.JwtSecret), nil })
-	if err != nil || !token.Valid {
+	if err != nil {
 		return nil, x.Wrap(err, "Failed to parse token")
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
-		return nil, x.New("Failed to claims token")
+		return nil, x.New("Failed to extract token claims")
 	}
 
-	// Check if token is blacklisted
-	tokenID := claims["jti"].(string)
-	exists := a.authRepository.FindTokenID(ctx, tokenID)
+	sub, ok := claims["sub"].(string)
+	if !ok {
+		return nil, x.New("Invalid token subject")
+	}
+
+	email, ok := claims["email"].(string)
+	if !ok {
+		return nil, x.New("Invalid token email")
+	}
+
+	jti, ok := claims["jti"].(string)
+	if !ok {
+		return nil, x.New("Invalid token ID")
+	}
+
+	exists := a.authRepository.FindTokenID(ctx, jti)
 	if exists {
 		return nil, x.New("token in the blacklist")
 	}
 
-	return &authpb.ValidateTokenResponse{
+	return &dto.ValidateTokenResponse{
 		Valid:  true,
-		UserId: claims["sub"].(string),
-		Email:  claims["email"].(string),
+		UserId: sub,
+		Email:  email,
 	}, nil
 }
 
-func (a *authService) RefreshToken(ctx context.Context, req *authpb.RefreshTokenRequest) (*authpb.RefreshTokenResponse, error) {
+func (a *authService) RefreshToken(ctx context.Context, req *dto.RefreshTokenRequest) (*dto.RefreshTokenResponse, error) {
 	user, err := a.authRepository.GetUserInfo(ctx, req.RefreshToken)
 	if err != nil {
 		return nil, err
 	}
 
-	// Generate new access token
+	newRefreshToken := generateRefreshToken()
+
+	err = a.authRepository.RotateRefreshToken(ctx, user.ID, req.RefreshToken, newRefreshToken, time.Now().Add(time.Hour*24*7))
+	if err != nil {
+		return nil, err
+	}
+
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"sub":   user.ID,
 		"email": user.Email,
@@ -117,24 +132,29 @@ func (a *authService) RefreshToken(ctx context.Context, req *authpb.RefreshToken
 		return nil, x.Wrap(err, "Failed signed token")
 	}
 
-	return &authpb.RefreshTokenResponse{
-		Success:     true,
-		AccessToken: accessToken,
-		ExpiresIn:   3600,
+	return &dto.RefreshTokenResponse{
+		Success:      true,
+		AccessToken:  accessToken,
+		RefreshToken: newRefreshToken,
+		ExpiresIn:    3600,
 	}, nil
 }
 
-func (a *authService) Logout(ctx context.Context, req *authpb.LogoutRequest) (*authpb.LogoutResponse, error) {
-	// Parse token to get JTI
-	token, _ := jwt.Parse(req.Token, func(token *jwt.Token) (interface{}, error) {
+func (a *authService) Logout(ctx context.Context, req *dto.LogoutRequest) (*dto.LogoutResponse, error) {
+	token, err := jwt.Parse(req.Token, func(token *jwt.Token) (interface{}, error) {
 		return []byte(a.authOptions.JwtSecret), nil
 	})
 
-	if token != nil {
-		_ = a.authRepository.BlacklistToken(ctx, token)
+	if err == nil && token != nil {
+		if err := a.authRepository.BlacklistToken(ctx, token); err != nil {
+			zerolog.Ctx(ctx).Error().Err(err).Msg("failed_to_blacklist_token")
+		}
 	}
 
-	_ = a.authRepository.ClearSession(ctx, req.UserId)
+	if err := a.authRepository.ClearSession(ctx, req.UserId); err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("failed_to_clear_session")
+		return &dto.LogoutResponse{Success: false, Message: "Failed to logout"}, err
+	}
 
-	return &authpb.LogoutResponse{Success: true, Message: "Logged out successfully"}, nil
+	return &dto.LogoutResponse{Success: true, Message: "Logged out successfully"}, nil
 }

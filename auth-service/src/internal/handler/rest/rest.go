@@ -12,24 +12,27 @@ import (
 var onceRestHandler = &sync.Once{}
 
 type rest struct {
-	gin  *gin.Engine
-	svc  *service.Service
-	grpc *rpc.Grpc
+	gin       *gin.Engine
+	svc       *service.Service
+	grpc      *rpc.Grpc
+	jwtSecret []byte
 }
 
-func InitRestHandler(gin *gin.Engine, svc *service.Service, grpc *rpc.Grpc) {
+func InitRestHandler(gin *gin.Engine, svc *service.Service, grpc *rpc.Grpc, jwtSecret string) {
 	var e *rest
 
 	onceRestHandler.Do(func() {
 		e = &rest{
-			gin:  gin,
-			svc:  svc,
-			grpc: grpc,
+			gin:       gin,
+			svc:       svc,
+			grpc:      grpc,
+			jwtSecret: []byte(jwtSecret),
 		}
 
 		e.Serve()
 	})
 }
+
 func (e *rest) Serve() {
 	e.gin.POST("/api/v1/auth/login", e.handleLogin)
 	e.gin.POST("/api/v1/auth/refresh", e.handleRefresh)

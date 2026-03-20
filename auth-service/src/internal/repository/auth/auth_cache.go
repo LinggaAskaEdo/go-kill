@@ -2,11 +2,18 @@ package auth
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"time"
 
 	x "github.com/linggaaskaedo/go-kill/common/pkg/errors"
 )
+
+func hashToken(token string) string {
+	hash := sha256.Sum256([]byte(token))
+	return hex.EncodeToString(hash[:])
+}
 
 func (a *authRepository) storeSessionCache(ctx context.Context, userID string, refreshToken string, email string, ipAddress string) error {
 	sessionKey := fmt.Sprintf("session:%s", userID)
@@ -16,7 +23,8 @@ func (a *authRepository) storeSessionCache(ctx context.Context, userID string, r
 		return x.WrapWithCode(err, x.CodeCacheSetHashKey, "set_cache_session_user")
 	}
 
-	if err := a.redis0.Set(ctx, fmt.Sprintf("refresh:%s", refreshToken), userID, time.Hour*24*7).Err(); err != nil {
+	hashedToken := hashToken(refreshToken)
+	if err := a.redis0.Set(ctx, fmt.Sprintf("refresh:%s", hashedToken), userID, time.Hour*24*7).Err(); err != nil {
 		return x.WrapWithCode(err, x.CodeCacheSetHashKey, "set_cache_refresh_token_user")
 	}
 
@@ -30,7 +38,8 @@ func (a *authRepository) findTokenIDCache(ctx context.Context, tokenID string) b
 }
 
 func (a *authRepository) findRefreshTokenCache(ctx context.Context, refreshToken string) (string, error) {
-	userID, err := a.redis0.Get(ctx, fmt.Sprintf("refresh:%s", refreshToken)).Result()
+	hashedToken := hashToken(refreshToken)
+	userID, err := a.redis0.Get(ctx, fmt.Sprintf("refresh:%s", hashedToken)).Result()
 	if err != nil {
 		return userID, x.WrapWithCode(err, x.CodeCacheGetSimpleKey, "Invalid refresh token")
 	}
