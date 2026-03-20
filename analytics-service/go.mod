@@ -3,7 +3,7 @@ module github.com/linggaaskaedo/go-kill/analytics-service
 go 1.25.8
 
 require (
-	github.com/linggaaskaedo/go-kill/common v1.11.0
+	github.com/linggaaskaedo/go-kill/common v1.13.0
 	github.com/prometheus/client_golang v1.23.2
 	github.com/swaggo/swag v1.16.6
 )
