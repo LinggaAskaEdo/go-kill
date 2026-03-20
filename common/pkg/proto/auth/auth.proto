@@ -55,6 +55,7 @@ message RefreshTokenRequest {
 message RefreshTokenResponse {
   bool success = 1;
   string access_token = 2;
+  string refresh_token = 5;
   int64 expires_in = 3;
   string error = 4;
 }

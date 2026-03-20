@@ -102,10 +102,6 @@ func (sc *SchedulerComponent) Start(ctx context.Context) error {
 // Stop gracefully shuts down the cron scheduler, waiting for running jobs to finish
 // (up to the context timeout).
 func (sc *SchedulerComponent) Stop(ctx context.Context) error {
-	sc.mu.RLock()
-	defer sc.mu.RUnlock()
-
-	// cron.Stop returns a channel that is closed when all jobs have finished.
 	stopCtx := sc.cron.Stop()
 
 	select {

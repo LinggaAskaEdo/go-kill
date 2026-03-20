@@ -19,22 +19,24 @@ type Config struct {
 }
 
 type QueryComponent struct {
-	log       zerolog.Logger
-	cfg       Config
-	queries   map[string]string
-	templates map[string]*template.Template
-	ready     chan struct{}
-	mu        sync.RWMutex
+	log          zerolog.Logger
+	cfg          Config
+	queries      map[string]string
+	templates    map[string]*template.Template
+	ready        chan struct{}
+	mu           sync.RWMutex
+	paramPattern *regexp.Regexp
 }
 
 // NewQueryComponent creates a new component but does not load queries yet.
 func NewQueryComponent(log zerolog.Logger, cfg Config) *QueryComponent {
 	return &QueryComponent{
-		log:       log,
-		cfg:       cfg,
-		queries:   make(map[string]string),
-		templates: make(map[string]*template.Template),
-		ready:     make(chan struct{}),
+		log:          log,
+		cfg:          cfg,
+		queries:      make(map[string]string),
+		templates:    make(map[string]*template.Template),
+		ready:        make(chan struct{}),
+		paramPattern: regexp.MustCompile(`\$([a-zA-Z_][a-zA-Z0-9_]*)`),
 	}
 }
 
@@ -142,26 +144,26 @@ func (qc *QueryComponent) ExecuteTemplate(name string, data any) (string, []any,
 	}
 
 	query := buf.String()
-	return convertNamedToPositional(query, data)
+	return qc.convertNamedToPositional(query, data)
 }
 
 // convertNamedToPositional replaces $key placeholders with $1, $2, … in the order they appear.
 // It expects data to be a map[string]any.
-func convertNamedToPositional(query string, data any) (string, []any, error) {
+func (qc *QueryComponent) convertNamedToPositional(query string, data any) (string, []any, error) {
 	paramMap, ok := data.(map[string]any)
 	if !ok {
 		return "", nil, fmt.Errorf("data must be map[string]any for named parameter conversion")
 	}
 
-	re := regexp.MustCompile(`\$([a-zA-Z_][a-zA-Z0-9_]*)`)
-	matches := re.FindAllStringSubmatchIndex(query, -1)
+	matches := qc.paramPattern.FindAllStringSubmatchIndex(query, -1)
 
 	if len(matches) == 0 {
 		return query, nil, nil
 	}
 
 	args := make([]any, 0, len(matches))
-	result := query
+	var result bytes.Buffer
+	offset := 0
 
 	for _, match := range matches {
 		fullStart := match[0]
@@ -169,18 +171,22 @@ func convertNamedToPositional(query string, data any) (string, []any, error) {
 		keyStart := match[2]
 		keyEnd := match[3]
 
+		result.WriteString(query[offset:fullStart])
+
 		key := query[keyStart:keyEnd]
 		value, exists := paramMap[key]
 		if !exists {
 			return "", nil, fmt.Errorf("parameter $%s not found in data", key)
 		}
 
-		positional := fmt.Sprintf("$%d", len(args)+1)
-		result = result[:fullStart] + positional + result[fullEnd:]
+		result.WriteString(fmt.Sprintf("$%d", len(args)+1))
 		args = append(args, value)
+		offset = fullEnd
 	}
 
-	return result, args, nil
+	result.WriteString(query[offset:])
+
+	return result.String(), args, nil
 }
 
 // Ready returns a channel that is closed when the connection is established.

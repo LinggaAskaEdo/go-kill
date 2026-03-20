@@ -2,12 +2,16 @@ package grpcclient
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/connectivity"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
@@ -15,6 +19,14 @@ type Config struct {
 	Target   string        `yaml:"target"`
 	Timeout  time.Duration `yaml:"timeout"`
 	Insecure bool          `yaml:"insecure"`
+	TLS      TLSConfig     `yaml:"tls"`
+}
+
+type TLSConfig struct {
+	Enabled  bool   `yaml:"enabled"`
+	CertFile string `yaml:"cert_file"`
+	KeyFile  string `yaml:"key_file"`
+	CAFile   string `yaml:"ca_file"`
 }
 
 type GRPCClientComponent struct {
@@ -39,11 +51,17 @@ func (c *GRPCClientComponent) Start(ctx context.Context) error {
 		grpc.WithUnaryInterceptor(c.ReqIDClientInterceptor),
 	}
 
-	if c.cfg.Insecure {
+	switch {
+	case c.cfg.Insecure:
 		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	} else {
-		// In production must configure TLS here.
-		return fmt.Errorf("secure mode not implemented; set insecure: true for development")
+	case c.cfg.TLS.Enabled:
+		creds, err := c.loadTLSCredentials()
+		if err != nil {
+			return fmt.Errorf("failed to load TLS credentials: %w", err)
+		}
+		opts = append(opts, grpc.WithTransportCredentials(creds))
+	default:
+		return fmt.Errorf("secure mode not implemented; set insecure: true for development or configure TLS")
 	}
 
 	client, err := grpc.NewClient(c.cfg.Target, opts...)
@@ -68,12 +86,40 @@ func (c *GRPCClientComponent) Start(ctx context.Context) error {
 		}
 	}
 
-	close(c.ready) // signal readiness
+	close(c.ready)
 	c.log.Debug().Str("target", c.cfg.Target).Msg("gRPC client connected")
-	<-ctx.Done() // Block until shutdown signal
+	<-ctx.Done()
 	c.log.Debug().Msg("gRPC client context cancelled – stopping")
 
 	return nil
+}
+
+func (c *GRPCClientComponent) loadTLSCredentials() (credentials.TransportCredentials, error) {
+	tlsConfig := &tls.Config{}
+
+	if c.cfg.TLS.CAFile != "" {
+		caCert, err := os.ReadFile(c.cfg.TLS.CAFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read CA cert: %w", err)
+		}
+		caCertPool := x509.NewCertPool()
+		if !caCertPool.AppendCertsFromPEM(caCert) {
+			return nil, fmt.Errorf("failed to add CA cert to pool")
+		}
+		tlsConfig.RootCAs = caCertPool
+	}
+
+	if c.cfg.TLS.CertFile != "" && c.cfg.TLS.KeyFile != "" {
+		cert, err := tls.LoadX509KeyPair(c.cfg.TLS.CertFile, c.cfg.TLS.KeyFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load client cert: %w", err)
+		}
+		tlsConfig.Certificates = []tls.Certificate{cert}
+	}
+
+	tlsConfig.MinVersion = tls.VersionTLS12
+
+	return credentials.NewTLS(tlsConfig), nil
 }
 
 // Stop closes the connection.

@@ -59,6 +59,10 @@ func (s *GRPCServerComponent) Start(ctx context.Context) error {
 		grpc.ChainUnaryInterceptor(
 			s.ReqIDServerInterceptor,
 			LoggingUnaryServerInterceptor(s.log),
+		),
+		grpc.ChainStreamInterceptor(
+			s.StreamServerInterceptor,
+			LoggingStreamServerInterceptor(s.log),
 		))
 
 	// 4. Run the (possibly blocking) registrar with context.
@@ -100,7 +104,7 @@ func (s *GRPCServerComponent) Stop(ctx context.Context) error {
 		return nil
 	}
 
-	stopCtx, cancel := context.WithTimeout(context.Background(), s.cfg.ShutdownTimeout)
+	stopCtx, cancel := context.WithTimeout(ctx, s.cfg.ShutdownTimeout)
 	defer cancel()
 
 	s.log.Debug().Msg("GRPCServerComponent.Stop: calling GracefulStop")

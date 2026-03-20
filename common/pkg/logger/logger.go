@@ -3,7 +3,7 @@ package logger
 import (
 	"io"
 	"os"
-	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -27,15 +27,35 @@ type Config struct {
 	Compress   bool   `yaml:"compress"`
 }
 
+func parseLogLevel(level string) zerolog.Level {
+	switch strings.ToLower(level) {
+	case "debug":
+		return zerolog.DebugLevel
+	case "info":
+		return zerolog.InfoLevel
+	case "warn", "warning":
+		return zerolog.WarnLevel
+	case "error":
+		return zerolog.ErrorLevel
+	case "fatal":
+		return zerolog.FatalLevel
+	case "panic":
+		return zerolog.PanicLevel
+	default:
+		return zerolog.DebugLevel
+	}
+}
+
 func Init(cfg Config) zerolog.Logger {
 	onceLogger.Do(func() {
 		zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
 		zerolog.TimeFieldFormat = time.RFC3339
 
-		logLevel, err := strconv.Atoi(os.Getenv("LOG_LEVEL"))
-		if err != nil {
-			logLevel = int(zerolog.DebugLevel)
+		envLevel := os.Getenv("LOG_LEVEL")
+		if envLevel != "" {
+			cfg.Level = envLevel
 		}
+		logLevel := parseLogLevel(cfg.Level)
 
 		var output io.Writer = zerolog.ConsoleWriter{
 			Out:        os.Stdout,
@@ -55,7 +75,7 @@ func Init(cfg Config) zerolog.Logger {
 		}
 
 		globalLogger = zerolog.New(output).
-			Level(zerolog.Level(logLevel)).
+			Level(logLevel).
 			With().
 			Timestamp().
 			Caller().

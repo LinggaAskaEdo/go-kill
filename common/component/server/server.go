@@ -19,7 +19,7 @@ type Config struct {
 	Port            int           `yaml:"port"`
 	WriteTimeout    time.Duration `yaml:"write_timeout"`
 	ReadTimeout     time.Duration `yaml:"read_timeout"`
-	IdleTimeout     time.Duration `json:"idle_timeout"`
+	IdleTimeout     time.Duration `yaml:"idle_timeout"`
 	ShutdownTimeout time.Duration `yaml:"shutdown_timeout"`
 }
 
@@ -96,7 +96,7 @@ func (h *HTTPServerComponent) Stop(ctx context.Context) error {
 		return nil
 	}
 
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), h.cfg.ShutdownTimeout)
+	shutdownCtx, cancel := context.WithTimeout(ctx, h.cfg.ShutdownTimeout)
 	defer cancel()
 
 	h.log.Debug().Msg("HTTPServerComponent.Stop: calling Shutdown")

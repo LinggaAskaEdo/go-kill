@@ -19,10 +19,9 @@ func (mw *middleware) Handler() gin.HandlerFunc {
 		path := c.Request.URL.Path
 		raw := c.Request.URL.RawQuery
 
-		if !strings.HasPrefix(path, "/swagger/") { // skip logging swagger request
+		if !strings.HasPrefix(path, "/swagger/") {
 			start := time.Now()
 
-			// Get trace context from OpenTelemetry
 			span := trace.SpanFromContext(ctx)
 			spanContext := span.SpanContext()
 			traceID := spanContext.TraceID().String()
@@ -48,40 +47,27 @@ func (mw *middleware) Handler() gin.HandlerFunc {
 				path = path + "?" + raw
 			}
 
-			mw.log.Info().
-				Str(preference.EVENT, "START").
-				// Str(preference.TRACE_ID, traceID).
-				// Str(preference.SPAN_ID, spanID).
+			c.Request = c.Request.WithContext(ctx)
+			c.Next()
+
+			latency := time.Since(start)
+			if latency > time.Minute {
+				latency = latency.Truncate(time.Second)
+			}
+
+			event := mw.log.Info()
+			if c.Writer.Status() >= 400 {
+				event = mw.log.Error()
+			}
+			event.
 				Str(preference.REQ_ID, reqID).
 				Str(preference.METHOD, c.Request.Method).
 				Str(preference.URL, path).
 				Str(preference.USER_AGENT, c.Request.UserAgent()).
 				Str(preference.ADDR, c.Request.Host).
-				Send()
-
-			// Process request
-			c.Request = c.Request.WithContext(ctx)
-			c.Next()
-
-			// Fill the params
-			param := gin.LogFormatterParams{}
-
-			param.TimeStamp = time.Now() // Stop timer
-			param.Latency = param.TimeStamp.Sub(start)
-			if param.Latency > time.Minute {
-				param.Latency = param.Latency.Truncate(time.Second)
-			}
-
-			param.StatusCode = c.Writer.Status()
-
-			mw.log.Info().
-				Str(preference.EVENT, "END").
-				// Str(preference.TRACE_ID, traceID).
-				// Str(preference.SPAN_ID, spanID).
-				Str(preference.REQ_ID, reqID).
-				Str(preference.LATENCY, param.Latency.String()).
-				Int(preference.STATUS, param.StatusCode).
-				Send()
+				Str(preference.LATENCY, latency.String()).
+				Int(preference.STATUS, c.Writer.Status()).
+				Msg("request completed")
 		}
 	}
 }
