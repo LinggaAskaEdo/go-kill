@@ -63,6 +63,9 @@ func toProducts(products []*entity.Product) []*dto.Product {
 }
 
 func toProduct(product *entity.Product) *dto.Product {
+	if product == nil {
+		return nil
+	}
 	return &dto.Product{
 		ID:          product.ID,
 		Name:        product.Name,

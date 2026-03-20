@@ -50,13 +50,17 @@ func (r *productRepository) GetListProduct(ctx context.Context) ([]*entity.Produ
 
 func (r *productRepository) GetProduct(ctx context.Context, productID string) (*entity.Product, error) {
 	product := r.getProductCache(ctx, productID)
-	if product == nil {
-		product, err := r.getProductByIDSQL(ctx, productID)
-		if err != nil {
-			return nil, err
-		}
-
+	if product != nil {
 		return product, nil
+	}
+
+	product, err := r.getProductByIDSQL(ctx, productID)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := r.setProductCache(ctx, product); err != nil {
+		zerolog.Ctx(ctx).Warn().Err(err).Msg("failed to cache product")
 	}
 
 	return product, nil
@@ -99,5 +103,22 @@ func (r *productRepository) ReserveInventory(ctx context.Context, req []dto.Crea
 }
 
 func (r *productRepository) ReleaseInventory(ctx context.Context, req []dto.CreateReserveInventory) error {
-	return r.createReleaseInventorySQL(ctx, req)
+	tx, err := r.db0.BeginTxx(ctx, &sql.TxOptions{Isolation: sql.LevelDefault})
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("tx_release_inventory")
+		return err
+	}
+
+	tx, err = r.createReleaseInventorySQLTx(ctx, tx, req)
+	if err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+
+	if err = tx.Commit(); err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("commit_release_inventory")
+		return x.Wrap(err, "commit_release_inventory")
+	}
+
+	return nil
 }

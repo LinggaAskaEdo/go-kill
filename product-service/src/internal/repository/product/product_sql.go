@@ -26,8 +26,7 @@ func (r *productRepository) createProductSQL(ctx context.Context, tx *sqlx.Tx, p
 
 func (r *productRepository) createProductCategoriesSQL(ctx context.Context, tx *sqlx.Tx, productID string, categoryIDs []string) (*sqlx.Tx, error) {
 	if len(categoryIDs) == 0 {
-		zerolog.Ctx(ctx).Error().Str("productID", productID).Any("categoryIDs", categoryIDs).Msg("create_product_categories_sql")
-		return tx, x.NewWithCode(x.CodeSQLCreate, "create_product_categories_sql")
+		return tx, nil
 	}
 
 	query, _ := r.queryLoader.Get("CreateProductCategories")
@@ -49,7 +48,11 @@ func (r *productRepository) createProductCategoriesSQL(ctx context.Context, tx *
 func (r *productRepository) createProductInventorySQL(ctx context.Context, tx *sqlx.Tx, productID string, qty, rsv int) (*sqlx.Tx, error) {
 	query, _ := r.queryLoader.Get("CreateProductInventory")
 	result := tx.MustExecContext(ctx, query, productID, qty, rsv)
-	rows, _ := result.RowsAffected()
+	rows, err := result.RowsAffected()
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Str("productID", productID).Int("qty", qty).Int("rsv", rsv).Msg("create_product_inventory_sql")
+		return tx, x.WrapWithCode(err, x.CodeSQLCreate, "create_product_inventory_sql")
+	}
 	if rows == 0 {
 		zerolog.Ctx(ctx).Error().Str("productID", productID).Int("qty", qty).Int("rsv", rsv).Msg("create_product_inventory_sql")
 		return tx, x.NewWithCode(x.CodeSQLCreate, "create_product_inventory_sql")
@@ -63,11 +66,6 @@ func (r *productRepository) getListProductSQL(ctx context.Context) ([]*entity.Pr
 	rows, err := r.db0.QueryContext(ctx, query)
 	if err != nil {
 		zerolog.Ctx(ctx).Error().Err(err).Msg("get_list_product_sql")
-
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, x.WrapWithCode(err, x.CodeSQLRecordDoesNotExist, "get_list_product_sql")
-		}
-
 		return nil, x.WrapWithCode(err, x.CodeSQLRowScan, "get_list_product_sql")
 	}
 	defer rows.Close()
@@ -221,7 +219,7 @@ func (r *productRepository) getInventoryByProductIDSQL(ctx context.Context, prod
 	err := r.db0.QueryRowContext(ctx, query, productID).Scan(&quantity, &reserved)
 	if err != nil {
 		zerolog.Ctx(ctx).Error().Str("id", productID).Msg("get_inventory_by_product_id_sql")
-		return quantity, reserved, x.WrapWithCode(err, x.CodeSQLCreate, "get_inventory_by_product_id_sql")
+		return quantity, reserved, x.WrapWithCode(err, x.CodeSQLRead, "get_inventory_by_product_id_sql")
 	}
 
 	return quantity, reserved, nil
@@ -261,18 +259,23 @@ func (r *productRepository) createReserveInventorySQL(ctx context.Context, tx *s
 	return tx, nil
 }
 
-func (r *productRepository) createReleaseInventorySQL(ctx context.Context, req []dto.CreateReserveInventory) error {
+func (r *productRepository) createReleaseInventorySQLTx(ctx context.Context, tx *sqlx.Tx, req []dto.CreateReserveInventory) (*sqlx.Tx, error) {
 	query, _ := r.queryLoader.Get("UpdateReleaseQuantity")
 
 	for _, item := range req {
-		_, err := r.db0.ExecContext(ctx, query, item.Quantity, item.ProductId)
+		var err error
+		if tx != nil {
+			_, err = tx.ExecContext(ctx, query, item.Quantity, item.ProductId)
+		} else {
+			_, err = r.db0.ExecContext(ctx, query, item.Quantity, item.ProductId)
+		}
 		if err != nil {
 			zerolog.Ctx(ctx).Error().Str("productID", item.ProductId).Int32("qty", item.Quantity).Msg("create_release_inventory_sql")
-			return x.WrapWithCode(err, x.CodeSQLUpdate, "create_release_inventory_sql")
+			return tx, x.WrapWithCode(err, x.CodeSQLUpdate, "create_release_inventory_sql")
 		}
 
 		r.setInventoryReleaseCache(ctx, item.ProductId, item.Quantity)
 	}
 
-	return nil
+	return tx, nil
 }

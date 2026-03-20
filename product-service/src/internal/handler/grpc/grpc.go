@@ -22,14 +22,14 @@ func InitGrpcHandler(log zerolog.Logger, svc *service.Service) *Grpc {
 }
 
 func convertItems(original []*productpb.InventoryItem) []dto.CreateReserveInventory {
-	result := make([]dto.CreateReserveInventory, len(original))
+	result := make([]dto.CreateReserveInventory, 0, len(original))
 
-	for i, item := range original {
+	for _, item := range original {
 		if item != nil {
-			result[i] = dto.CreateReserveInventory{
+			result = append(result, dto.CreateReserveInventory{
 				ProductId: item.ProductId,
 				Quantity:  item.Quantity,
-			}
+			})
 		}
 	}
 

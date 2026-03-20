@@ -87,14 +87,24 @@ func main() {
 	// Initialize Gin engine
 	gin := http.Init(log, mw, cfg.Http)
 
-	// Stage 1: Start independent components (no dependencies)
-	independent := []app.Component{redisComp0, dbComp0, queryComp}
+	var independent []app.Component
+	if redisComp0 != nil {
+		independent = append(independent, redisComp0)
+	}
+	if dbComp0 != nil {
+		independent = append(independent, dbComp0)
+	}
+	if queryComp != nil {
+		independent = append(independent, queryComp)
+	}
 
-	// Create a shared context that cancels on SIGINT/SIGTERM
+	if len(independent) == 0 {
+		log.Fatal().Msg("no independent components to start")
+	}
+
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	// Use an errgroup to manage their goroutines
 	indepGroup, indepCtx := errgroup.WithContext(ctx)
 	for _, comp := range independent {
 		indepGroup.Go(func() error {
@@ -102,12 +112,14 @@ func main() {
 		})
 	}
 
-	// Wait for each independent component to be ready (with timeout)
+	startupCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
 	for _, comp := range independent {
 		select {
 		case <-comp.Ready():
 			log.Info().Str("component", fmt.Sprintf("%T", comp)).Msg("ready")
-		case <-time.After(10 * time.Second):
+		case <-startupCtx.Done():
 			log.Fatal().Msgf("timeout waiting for component %T", comp)
 		}
 	}

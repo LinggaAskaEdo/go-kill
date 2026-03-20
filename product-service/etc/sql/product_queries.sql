@@ -56,5 +56,5 @@ WHERE product_id = $2;
 
 -- name: UpdateReleaseQuantity
 UPDATE inventory 
-SET reserved_quantity = reserved_quantity - $1, updated_at = NOW()
+SET reserved_quantity = GREATEST(0, reserved_quantity - $1), updated_at = NOW()
 WHERE product_id = $2;

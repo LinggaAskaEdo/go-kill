@@ -3,12 +3,21 @@ package rest
 import (
 	"sync"
 
+	x "github.com/linggaaskaedo/go-kill/common/pkg/errors"
 	"github.com/linggaaskaedo/go-kill/product-service/src/internal/service"
 
 	"github.com/gin-gonic/gin"
 )
 
-var onceRestHandler = &sync.Once{}
+var (
+	onceRestHandler = &sync.Once{}
+
+	errProductIDRequired       = x.New("product ID is required")
+	errInvalidProductIDFormat  = x.New("invalid product ID format")
+	errProductNotFound         = x.NewWithCode(x.CodeSQLRecordDoesNotExist, "product not found")
+	errCategoryIDRequired      = x.New("category ID is required")
+	errInvalidCategoryIDFormat = x.New("invalid category ID format")
+)
 
 type rest struct {
 	gin *gin.Engine

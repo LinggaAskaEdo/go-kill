@@ -58,10 +58,16 @@ func (s *ServiceComponent) Stop(ctx context.Context) error {
 }
 
 func (s *ServiceComponent) Service() *service.Service {
+	if s.service == nil {
+		panic("ServiceComponent.Service() called before Start()")
+	}
 	return s.service
 }
 
 func (s *ServiceComponent) GrpcHandler() *grpcHandler.Grpc {
+	if s.grpcHandler == nil {
+		panic("ServiceComponent.GrpcHandler() called before Start()")
+	}
 	return s.grpcHandler
 }
 

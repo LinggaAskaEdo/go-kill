@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"math/rand/v2"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/linggaaskaedo/go-kill/common/component/scheduler"
 	"github.com/linggaaskaedo/go-kill/product-service/src/internal/model/dto"
 	"github.com/linggaaskaedo/go-kill/product-service/src/internal/service/product"
 
+	"github.com/openpcc/openpcc/uuidv7"
 	"github.com/rs/zerolog"
 )
 
@@ -53,6 +55,7 @@ type ProductGeneratorJob struct {
 	cfg            scheduler.Config
 	rng            *rand.Rand
 	categoryIDs    []string
+	mu             sync.RWMutex
 }
 
 func NewProductGeneratorJob(log zerolog.Logger, productService product.ProductServiceItf, cfg scheduler.Config) *ProductGeneratorJob {
@@ -106,7 +109,7 @@ func (j *ProductGeneratorJob) generateProduct(ctx context.Context, idx int) dto.
 	desc := j.generateDescription(name)
 	price := j.generatePrice()
 	sku := j.generateSKU(idx + 1)
-	isActive := rand.Float64() > 0.1 // 90% active
+	isActive := j.rng.Float64() > 0.1 // 90% active
 	cats := j.generateCategories(ctx)
 
 	zerolog.Ctx(ctx).Debug().Str("name", name).Str("desc", desc).Float64("price", price).Str("sku", sku).Bool("isActive", isActive).Strs("cats", cats).Send()
@@ -155,10 +158,8 @@ func (j *ProductGeneratorJob) generateDescription(name string) string {
 }
 
 func (j *ProductGeneratorJob) generateSKU(index int) string {
-	letter1 := string(rune('A' + rand.IntN(26)))
-	letter2 := string(rune('A' + rand.IntN(26)))
-
-	return fmt.Sprintf("SKU-%06d-%s%s", index, letter1, letter2)
+	uid, _ := uuidv7.New()
+	return fmt.Sprintf("SKU-%s-%06d", uid.String()[:8], index)
 }
 
 func (j *ProductGeneratorJob) generatePrice() float64 {
@@ -200,49 +201,50 @@ func (j *ProductGeneratorJob) generateInventory(ctx context.Context) (int, int) 
 }
 
 func (j *ProductGeneratorJob) generateCategories(ctx context.Context) []string {
-	// If we don't have cached category IDs, fetch them from the database.
-	if len(j.categoryIDs) == 0 {
-		categories, err := j.productService.ListCategories(ctx)
-		if err != nil {
-			zerolog.Ctx(ctx).Error().Err(err).Msg("generate_categories: failed to list categories")
-			return nil
-		}
+	j.mu.Lock()
+	defer j.mu.Unlock()
 
-		zerolog.Ctx(ctx).Debug().Int("categories", len(categories)).Send()
-
-		if len(categories) == 0 {
-			// No categories exist; cache an empty slice to avoid repeated fetches.
-			j.categoryIDs = []string{}
-			return nil
-		}
-
-		// Extract IDs from the fetched categories and cache them.
-		ids := make([]string, len(categories))
-		for i, cat := range categories {
-			ids[i] = cat.ID
-		}
-
-		j.categoryIDs = ids
+	if len(j.categoryIDs) > 0 {
+		ids := make([]string, len(j.categoryIDs))
+		copy(ids, j.categoryIDs)
+		return j.selectRandomCategories(ids)
 	}
 
-	// If the cached list is empty (possible if no categories exist), return nil.
-	if len(j.categoryIDs) == 0 {
+	categories, err := j.productService.ListCategories(ctx)
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("generate_categories: failed to list categories")
 		return nil
 	}
 
-	// We now have the full list of category IDs. Choose a random subset.
-	ids := j.categoryIDs
-	max := len(ids)
+	zerolog.Ctx(ctx).Debug().Int("categories", len(categories)).Send()
 
-	// Decide how many IDs to return: between 1 and max-1 (or 1 if only one exists).
+	if len(categories) == 0 {
+		j.categoryIDs = []string{}
+		return nil
+	}
+
+	ids := make([]string, len(categories))
+	for i, cat := range categories {
+		ids[i] = cat.ID
+	}
+
+	j.categoryIDs = ids
+	return j.selectRandomCategories(ids)
+}
+
+func (j *ProductGeneratorJob) selectRandomCategories(ids []string) []string {
+	max := len(ids)
+	if max == 0 {
+		return nil
+	}
+
 	var n int
 	if max == 1 {
 		n = 1
 	} else {
-		n = j.rng.IntN(max-1) + 1 // yields 1 .. max-1
+		n = j.rng.IntN(max-1) + 1
 	}
 
-	// Randomly select n distinct IDs by shuffling a copy of the slice.
 	shuffled := make([]string, max)
 	copy(shuffled, ids)
 	j.rng.Shuffle(max, func(i, j int) {

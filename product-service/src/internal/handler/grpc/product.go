@@ -8,6 +8,10 @@ import (
 )
 
 func (g *Grpc) GetProduct(ctx context.Context, req *productpb.GetProductRequest) (*productpb.GetProductResponse, error) {
+	if req.ProductId == "" {
+		return nil, x.New("product ID is required")
+	}
+
 	resp, err := g.svc.Product.GetProduct(ctx, req.ProductId)
 	if err != nil {
 		return nil, err
@@ -24,6 +28,10 @@ func (g *Grpc) GetProduct(ctx context.Context, req *productpb.GetProductRequest)
 }
 
 func (g *Grpc) CheckInventory(ctx context.Context, req *productpb.CheckInventoryRequest) (*productpb.CheckInventoryResponse, error) {
+	if req.ProductId == "" {
+		return nil, x.New("product ID is required")
+	}
+
 	quantity, reserved, err := g.svc.Product.CheckInventory(ctx, req.ProductId)
 	if err != nil {
 		return nil, err
