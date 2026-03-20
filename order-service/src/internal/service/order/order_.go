@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/uuid"
 	x "github.com/linggaaskaedo/go-kill/common/pkg/errors"
 	productpb "github.com/linggaaskaedo/go-kill/common/pkg/proto/product"
 	userpb "github.com/linggaaskaedo/go-kill/common/pkg/proto/user"
@@ -21,9 +20,13 @@ import (
 func (s *orderService) CreateOrder(ctx context.Context, reqData *dto.CreateOrderRequest) (*string, *string, float64, error) {
 	// Step 1: Validate user
 	userResp, err := s.userClient.GetUser(ctx, &userpb.GetUserRequest{UserId: reqData.UserID})
-	if err != nil || !userResp.Found {
+	if err != nil {
 		zerolog.Ctx(ctx).Error().Err(err).Msg("create_order")
 		return nil, nil, 0, x.New("User not found", err)
+	}
+	if !userResp.Found || userResp == nil {
+		zerolog.Ctx(ctx).Error().Msg("create_order")
+		return nil, nil, 0, x.New("User not found", nil)
 	}
 
 	// Step 2: Validate shipping address
@@ -31,9 +34,13 @@ func (s *orderService) CreateOrder(ctx context.Context, reqData *dto.CreateOrder
 		AddressId: reqData.ShippingAddressID,
 		UserId:    reqData.UserID,
 	})
-	if err != nil || !addressResp.Found {
+	if err != nil {
 		zerolog.Ctx(ctx).Error().Err(err).Msg("create_order")
 		return nil, nil, 0, x.New("Invalid shipping address", err)
+	}
+	if !addressResp.Found || addressResp == nil {
+		zerolog.Ctx(ctx).Error().Msg("create_order")
+		return nil, nil, 0, x.New("Invalid shipping address", nil)
 	}
 
 	// Step 3: Validate products and calculate total
@@ -182,7 +189,7 @@ func (s *orderService) CancelOrder(ctx context.Context, reqData *dto.CancelOrder
 
 	// Publish cancellation event
 	event := dto.OrderEvent{
-		EventID:   uuid.New().String(),
+		EventID:   uuidv7.MustNew().String(),
 		EventType: "order.cancelled",
 		Version:   "1.0",
 		Timestamp: time.Now(),

@@ -1,7 +1,9 @@
 -- name: CreateOrder
 INSERT INTO orders (user_id, order_number, status, total_amount, shipping_address_id, billing_address_id, created_at, updated_at)
-VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
-RETURN id;
+VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW());
+
+-- name: GetLastInsertID
+SELECT LAST_INSERT_ID();
 
 -- name: CreateOrderItemsNamed
 INSERT INTO order_items (order_id, product_id, product_name, quantity, unit_price, subtotal, created_at) 

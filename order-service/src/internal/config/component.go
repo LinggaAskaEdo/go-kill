@@ -60,7 +60,22 @@ func (s *ServiceComponent) Start(ctx context.Context) error {
 }
 
 func (s *ServiceComponent) Stop(ctx context.Context) error {
-	s.log.Debug().Msg("Service component stopped")
+	s.log.Info().Msg("Service component stopping")
+
+	if err := s.userClientComp.Stop(ctx); err != nil {
+		s.log.Error().Err(err).Msg("failed to stop user client")
+	}
+	if err := s.productClientComp.Stop(ctx); err != nil {
+		s.log.Error().Err(err).Msg("failed to stop product client")
+	}
+	if err := s.kafkaProducerComp.Stop(ctx); err != nil {
+		s.log.Error().Err(err).Msg("failed to stop kafka producer")
+	}
+	if err := s.dbComp0.Stop(ctx); err != nil {
+		s.log.Error().Err(err).Msg("failed to stop database")
+	}
+
+	s.log.Info().Msg("Service component stopped")
 	return nil
 }
 

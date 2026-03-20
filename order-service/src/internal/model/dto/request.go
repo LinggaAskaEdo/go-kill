@@ -4,7 +4,7 @@ type CreateOrderRequest struct {
 	UserID            string       `json:"user_id"`
 	ShippingAddressID string       `json:"shipping_address_id"`
 	BillingAddressID  string       `json:"billing_address_id"`
-	PaymentMethod     string       `json:"patment_method"`
+	PaymentMethod     string       `json:"payment_method"`
 	Items             []*OrderItem `json:"items"`
 }
 

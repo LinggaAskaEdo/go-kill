@@ -2,13 +2,20 @@ package grpc
 
 import (
 	"context"
+	"time"
 
 	orderpb "github.com/linggaaskaedo/go-kill/common/pkg/proto/order"
 	"github.com/linggaaskaedo/go-kill/order-service/src/internal/model/dto"
 	"github.com/linggaaskaedo/go-kill/order-service/src/internal/util"
 )
 
+const defaultTimeout = 30 * time.Second
+const maxLimit = 100
+
 func (g *Grpc) CreateOrder(ctx context.Context, req *orderpb.CreateOrderRequest) (*orderpb.CreateOrderResponse, error) {
+	ctx, cancel := context.WithTimeout(ctx, defaultTimeout)
+	defer cancel()
+
 	reqData := &dto.CreateOrderRequest{
 		UserID:            req.UserId,
 		ShippingAddressID: req.ShippingAddressId,
@@ -31,6 +38,9 @@ func (g *Grpc) CreateOrder(ctx context.Context, req *orderpb.CreateOrderRequest)
 }
 
 func (g *Grpc) GetOrder(ctx context.Context, req *orderpb.GetOrderRequest) (*orderpb.GetOrderResponse, error) {
+	ctx, cancel := context.WithTimeout(ctx, defaultTimeout)
+	defer cancel()
+
 	reqData := &dto.GetOrderRequest{
 		OrderID: req.OrderId,
 		UserID:  req.UserId,
@@ -51,9 +61,15 @@ func (g *Grpc) GetOrder(ctx context.Context, req *orderpb.GetOrderRequest) (*ord
 }
 
 func (g *Grpc) ListOrders(ctx context.Context, req *orderpb.ListOrdersRequest) (*orderpb.ListOrdersResponse, error) {
+	ctx, cancel := context.WithTimeout(ctx, defaultTimeout)
+	defer cancel()
+
 	limit := req.Limit
 	if limit <= 0 {
 		limit = 20
+	}
+	if limit > maxLimit {
+		limit = maxLimit
 	}
 
 	offset := (req.Page - 1) * limit
@@ -79,6 +95,9 @@ func (g *Grpc) ListOrders(ctx context.Context, req *orderpb.ListOrdersRequest) (
 }
 
 func (g *Grpc) CancelOrder(ctx context.Context, req *orderpb.CancelOrderRequest) (*orderpb.CancelOrderResponse, error) {
+	ctx, cancel := context.WithTimeout(ctx, defaultTimeout)
+	defer cancel()
+
 	reqData := &dto.CancelOrderRequest{
 		OrderID: req.OrderId,
 		UserID:  req.UserId,

@@ -29,29 +29,34 @@ func (r *orderRepository) StoreOrder(ctx context.Context, productDetails []*dto.
 	}
 
 	// Step 5: Create order in MySQL
-	tx, err := r.db0.BeginTxx(ctx, &sql.TxOptions{Isolation: sql.LevelDefault})
+	tx, err := r.db0.BeginTxx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
 	if err != nil {
 		zerolog.Ctx(ctx).Error().Err(err).Msg("tx_store_order")
-		r.doReleaseInventory(ctx, inventoryItems)
+		if releaseErr := r.releaseInventory(ctx, inventoryItems); releaseErr != nil {
+			zerolog.Ctx(ctx).Error().Err(releaseErr).Msg("failed_to_release_inventory_after_tx_begin_error")
+		}
 
 		return nil, nil, err
 	}
 
 	// Insert order
-	orderNumber := fmt.Sprintf("ORD-%s-%d", time.Now().Format("20060102"), time.Now().Unix()%1000000)
+	now := time.Now()
+	orderNumber := fmt.Sprintf("ORD-%s-%d", now.Format("20060102"), now.Unix()%1000000)
 	order := &entity.Order{
 		UserID:            createOrders.UserID,
 		OrderNumber:       orderNumber,
 		Status:            entity.StatusPending,
 		TotalAmount:       totalAmount,
 		ShippingAddressID: &createOrders.ShippingAddressID,
-		BillingAddressID:  &createOrders.ShippingAddressID,
+		BillingAddressID:  &createOrders.BillingAddressID,
 	}
 
 	tx, order, err = r.createOrderSQL(ctx, tx, order)
 	if err != nil {
 		_ = tx.Rollback()
-		r.doReleaseInventory(ctx, inventoryItems)
+		if releaseErr := r.releaseInventory(ctx, inventoryItems); releaseErr != nil {
+			zerolog.Ctx(ctx).Error().Err(releaseErr).Msg("rollback_release_inventory_failed")
+		}
 
 		return nil, nil, err
 	}
@@ -60,7 +65,9 @@ func (r *orderRepository) StoreOrder(ctx context.Context, productDetails []*dto.
 	tx, err = r.createOrderItemsSQL(ctx, tx, order.ID, productDetails, createOrders)
 	if err != nil {
 		_ = tx.Rollback()
-		r.doReleaseInventory(ctx, inventoryItems)
+		if releaseErr := r.releaseInventory(ctx, inventoryItems); releaseErr != nil {
+			zerolog.Ctx(ctx).Error().Err(releaseErr).Msg("rollback_release_inventory_failed")
+		}
 
 		return nil, nil, err
 	}
@@ -75,7 +82,9 @@ func (r *orderRepository) StoreOrder(ctx context.Context, productDetails []*dto.
 	tx, err = r.createPaymentSQL(ctx, tx, payment)
 	if err != nil {
 		_ = tx.Rollback()
-		r.doReleaseInventory(ctx, inventoryItems)
+		if releaseErr := r.releaseInventory(ctx, inventoryItems); releaseErr != nil {
+			zerolog.Ctx(ctx).Error().Err(releaseErr).Msg("rollback_release_inventory_failed")
+		}
 
 		return nil, nil, err
 	}
@@ -84,7 +93,9 @@ func (r *orderRepository) StoreOrder(ctx context.Context, productDetails []*dto.
 	tx, err = r.createStatusHistorySQL(ctx, tx, order.ID, string(entity.StatusPending), "Order created")
 	if err != nil {
 		_ = tx.Rollback()
-		r.doReleaseInventory(ctx, inventoryItems)
+		if releaseErr := r.releaseInventory(ctx, inventoryItems); releaseErr != nil {
+			zerolog.Ctx(ctx).Error().Err(releaseErr).Msg("rollback_release_inventory_failed")
+		}
 
 		return nil, nil, err
 	}
@@ -98,11 +109,13 @@ func (r *orderRepository) StoreOrder(ctx context.Context, productDetails []*dto.
 	return &order.ID, &orderNumber, nil
 }
 
-func (r *orderRepository) doReleaseInventory(ctx context.Context, inventoryItems []*productpb.InventoryItem) {
+func (r *orderRepository) releaseInventory(ctx context.Context, inventoryItems []*productpb.InventoryItem) error {
 	_, err := r.productClient.ReleaseInventory(ctx, &productpb.ReleaseInventoryRequest{Items: inventoryItems})
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("Failed to release inventory")
+		zerolog.Ctx(ctx).Error().Err(err).Msg("release_inventory_failed")
+		return x.New("failed to release inventory", err)
 	}
+	return nil
 }
 
 func (r *orderRepository) GetOrder(ctx context.Context, reqData *dto.GetOrderRequest) (*entity.Order, error) {
@@ -141,7 +154,7 @@ func (r *orderRepository) CancelOrder(ctx context.Context, reqData *dto.CancelOr
 		return err
 	}
 
-	if order.Status != "pending" && order.Status != "confirmed" {
+	if order.Status != entity.StatusPending && order.Status != entity.StatusConfirmed {
 		return x.New("Order cannot be cancelled")
 	}
 
@@ -150,7 +163,7 @@ func (r *orderRepository) CancelOrder(ctx context.Context, reqData *dto.CancelOr
 		return err
 	}
 
-	tx, err := r.db0.BeginTxx(ctx, &sql.TxOptions{Isolation: sql.LevelDefault})
+	tx, err := r.db0.BeginTxx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
 	if err != nil {
 		zerolog.Ctx(ctx).Error().Err(err).Msg("tx_cancel_order")
 		return err
