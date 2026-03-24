@@ -4,7 +4,7 @@ go 1.25.8
 
 require (
 	github.com/gin-gonic/gin v1.12.0
-	github.com/linggaaskaedo/go-kill/common v1.15.0
+	github.com/linggaaskaedo/go-kill/common v1.16.0
 	github.com/openpcc/openpcc v0.0.80
 	github.com/redis/go-redis/v9 v9.18.0
 	github.com/swaggo/swag v1.16.6

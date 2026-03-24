@@ -3,7 +3,7 @@ module github.com/linggaaskaedo/go-kill/notification-service
 go 1.25.8
 
 require (
-	github.com/linggaaskaedo/go-kill/common v1.15.0
+	github.com/linggaaskaedo/go-kill/common v1.16.0
 	github.com/swaggo/swag v1.16.6
 )
 

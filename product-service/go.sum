@@ -102,8 +102,8 @@ github.com/leodido/go-urn v1.4.0/go.mod h1:bvxc+MVxLKB4z00jd1z+Dvzr47oO32F/QSNjS
 github.com/lib/pq v1.10.9/go.mod h1:AlVN5x4E4T544tWzH6hKfbfQvm3HdbOxrmggDNAPY9o=
 github.com/lib/pq v1.12.0 h1:mC1zeiNamwKBecjHarAr26c/+d8V5w/u4J0I/yASbJo=
 github.com/lib/pq v1.12.0/go.mod h1:/p+8NSbOcwzAEI7wiMXFlgydTwcgTr3OSKMsD2BitpA=
-github.com/linggaaskaedo/go-kill/common v1.15.0 h1:KkEbByvQCYS6k94foF0Km+pXmoISofTPoSapJF3hl34=
-github.com/linggaaskaedo/go-kill/common v1.15.0/go.mod h1:ewSKP1ow4Z21z10L3wDy4pbCifYpWo0adtpPyibCpzA=
+github.com/linggaaskaedo/go-kill/common v1.16.0 h1:hMoeokUxVeddNvWKi72loKE0ZHIgwxU671fibnURQj4=
+github.com/linggaaskaedo/go-kill/common v1.16.0/go.mod h1:94HC3h0XmibXz+TLlwcClfZ38xIFJRNVVcL7w5oq1bU=
 github.com/mattn/go-colorable v0.1.13/go.mod h1:7S9/ev0klgBDR4GtXTXX8a3vIGJpMovkB8vQcUbaXHg=
 github.com/mattn/go-colorable v0.1.14 h1:9A9LHSqF/7dyVVX6g0U9cwm9pG3kP9gSzcuIPHPsaIE=
 github.com/mattn/go-colorable v0.1.14/go.mod h1:6LmQG8QLFO4G5z1gPvYEzlUgJ2wF+stgPZH1UqBm1s8=
