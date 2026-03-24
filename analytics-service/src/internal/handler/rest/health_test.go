@@ -11,6 +11,13 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
+const (
+	pathHealthLive  = "/health/live"
+	pathHealthReady = "/health/ready"
+	pathMetrics     = "/metrics"
+	errMsgStatusFmt = "expected status %d, got %d"
+)
+
 func setupTestRouter() *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	return gin.New()
@@ -24,18 +31,18 @@ func TestLiveness(t *testing.T) {
 		log: zerolog.Logger{},
 	}
 
-	router.GET("/health/live", r.liveness)
+	router.GET(pathHealthLive, r.liveness)
 
-	req, _ := http.NewRequest("GET", "/health/live", nil)
+	req, _ := http.NewRequest(http.MethodGet, pathHealthLive, nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
 	if w.Code != http.StatusOK {
-		t.Errorf("expected status 200, got %d", w.Code)
+		t.Errorf(errMsgStatusFmt, http.StatusOK, w.Code)
 	}
 }
 
-func TestReadiness_AllHealthy(t *testing.T) {
+func TestReadinessAllHealthy(t *testing.T) {
 	router := setupTestRouter()
 
 	mockRedis := redis.NewClient(&redis.Options{
@@ -53,18 +60,18 @@ func TestReadiness_AllHealthy(t *testing.T) {
 		log:   zerolog.Logger{},
 	}
 
-	router.GET("/health/ready", r.readiness)
+	router.GET(pathHealthReady, r.readiness)
 
-	req, _ := http.NewRequest("GET", "/health/ready", nil)
+	req, _ := http.NewRequest(http.MethodGet, pathHealthReady, nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
 	if w.Code != http.StatusOK {
-		t.Errorf("expected status 200, got %d", w.Code)
+		t.Errorf(errMsgStatusFmt, http.StatusOK, w.Code)
 	}
 }
 
-func TestReadiness_RedisDown(t *testing.T) {
+func TestReadinessRedisDown(t *testing.T) {
 	router := setupTestRouter()
 
 	mockRedis := redis.NewClient(&redis.Options{
@@ -78,18 +85,18 @@ func TestReadiness_RedisDown(t *testing.T) {
 		log:   zerolog.Logger{},
 	}
 
-	router.GET("/health/ready", r.readiness)
+	router.GET(pathHealthReady, r.readiness)
 
-	req, _ := http.NewRequest("GET", "/health/ready", nil)
+	req, _ := http.NewRequest(http.MethodGet, pathHealthReady, nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
 	if w.Code != http.StatusServiceUnavailable {
-		t.Errorf("expected status 503, got %d", w.Code)
+		t.Errorf(errMsgStatusFmt, http.StatusServiceUnavailable, w.Code)
 	}
 }
 
-func TestReadiness_MongoDown(t *testing.T) {
+func TestReadinessMongoDown(t *testing.T) {
 	router := setupTestRouter()
 
 	r := &rest{
@@ -99,14 +106,14 @@ func TestReadiness_MongoDown(t *testing.T) {
 		log:   zerolog.Logger{},
 	}
 
-	router.GET("/health/ready", r.readiness)
+	router.GET(pathHealthReady, r.readiness)
 
-	req, _ := http.NewRequest("GET", "/health/ready", nil)
+	req, _ := http.NewRequest(http.MethodGet, pathHealthReady, nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
 	if w.Code != http.StatusOK {
-		t.Errorf("expected status 200, got %d", w.Code)
+		t.Errorf(errMsgStatusFmt, http.StatusOK, w.Code)
 	}
 }
 
@@ -118,14 +125,14 @@ func TestMetricsHandler(t *testing.T) {
 		log: zerolog.Logger{},
 	}
 
-	router.GET("/metrics", r.metricsHandler())
+	router.GET(pathMetrics, r.metricsHandler())
 
-	req, _ := http.NewRequest("GET", "/metrics", nil)
+	req, _ := http.NewRequest(http.MethodGet, pathMetrics, nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
 	if w.Code != http.StatusOK {
-		t.Errorf("expected status 200, got %d", w.Code)
+		t.Errorf(errMsgStatusFmt, http.StatusOK, w.Code)
 	}
 }
 
