@@ -18,3 +18,13 @@ func InitGrpcHandler(log zerolog.Logger, svc *service.Service) *Grpc {
 		svc: svc,
 	}
 }
+
+func (g *Grpc) Serve() []string {
+	return []string{
+		"/auth.AuthService/CreateAuthUser",
+		"/auth.AuthService/Login",
+		"/auth.AuthService/ValidateToken",
+		"/auth.AuthService/RefreshToken",
+		"/auth.AuthService/Logout",
+	}
+}
