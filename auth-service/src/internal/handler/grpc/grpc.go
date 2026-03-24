@@ -9,6 +9,7 @@ import (
 )
 
 var onceGrpcHandler = &sync.Once{}
+var grpcHandler *Grpc
 
 type Grpc struct {
 	authpb.AuthServiceServer
@@ -16,11 +17,13 @@ type Grpc struct {
 	svc *service.Service
 }
 
-func InitGrpcHandler(log zerolog.Logger, svc *service.Service) {
+func InitGrpcHandler(log zerolog.Logger, svc *service.Service) *Grpc {
 	onceGrpcHandler.Do(func() {
-		_ = &Grpc{
+		grpcHandler = &Grpc{
 			log: log,
 			svc: svc,
 		}
 	})
+
+	return grpcHandler
 }

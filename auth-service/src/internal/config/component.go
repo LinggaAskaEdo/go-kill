@@ -46,7 +46,7 @@ func NewServiceComponent(
 func (s *ServiceComponent) Start(ctx context.Context) error {
 	s.repo = repository.InitRepository(s.dbComp0.Client(), s.queryComp, s.redisComp0.Client())
 	s.service = service.InitService(s.repo, s.svcOpts)
-	grpcHandler.InitGrpcHandler(s.log, s.service)
+	s.grpcHandler = grpcHandler.InitGrpcHandler(s.log, s.service)
 
 	close(s.ready) // signal that service is ready
 	s.log.Debug().Msg("Service component started")
