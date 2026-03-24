@@ -19,7 +19,7 @@ A distributed microservices architecture built with GoLang implementing:
 
 - JWT-based authentication
 - gRPC for inter-service communication
-- REST & GraphQL for client-facing APIs
+- REST for client-facing APIs
 - Kafka for event-driven architecture
 - Multi-database strategy (PostgreSQL, MySQL, MongoDB, Redis)
 
@@ -27,7 +27,7 @@ A distributed microservices architecture built with GoLang implementing:
 
 - **Language**: GoLang
 - **RPC Framework**: gRPC
-- **API**: REST (Gin/Echo), GraphQL (gqlgen)
+- **API**: REST (Gin)
 - **Message Broker**: Kafka
 - **Databases**: PostgreSQL, MySQL, MongoDB, Redis
 - **Authentication**: JWT (RS256)
@@ -40,8 +40,8 @@ A distributed microservices architecture built with GoLang implementing:
 graph TD
     Gateway["API Gateway<br/>(JWT Validation Layer)"]
     Auth["Auth Service<br/>REST"]
-    User["User Service<br/>REST/GraphQL"]
-    Product["Product Service<br/>REST/GraphQL"]
+    User["User Service<br/>REST"]
+    Product["Product Service<br/>REST"]
     Order["Order Service<br/>gRPC"]
 
     Gateway --> Auth
@@ -123,7 +123,7 @@ graph TD
 ### 2. User Service
 
 **Port**: 8082  
-**Protocol**: REST + GraphQL (Client), gRPC Server (Internal)  
+**Protocol**: REST (Client), gRPC Server (Internal)  
 **Database**: PostgreSQL (primary), MongoDB (activity logs)
 
 **Responsibilities**:
@@ -149,7 +149,7 @@ graph TD
 ### 3. Product Service
 
 **Port**: 8083  
-**Protocol**: REST + GraphQL (Client), gRPC Server (Internal)  
+**Protocol**: REST (Client), gRPC Server (Internal)  
 **Database**: PostgreSQL (primary), Redis (cache)
 
 **Responsibilities**:
@@ -1617,181 +1617,6 @@ Client → User Service → MongoDB → Client
 
 ---
 
-### 7. GraphQL Complex Product Query Flow
-
-```text
-Client → Product Service → PostgreSQL → Redis → Product Service → Client
-```
-
-**Step-by-Step Process**:
-
-1. **Client sends GraphQL query**
-   - **Endpoint**: `POST /graphql`
-   - **Protocol**: HTTPS
-   - **Query**:
-
-     ```graphql
-     query {
-       product(id: "770e8400-e29b-41d4-a716-446655440000") {
-         id
-         name
-         description
-         price
-         categories {
-           id
-           name
-           slug
-         }
-         inventory {
-           quantity
-           available
-         }
-         relatedProducts {
-           id
-           name
-           price
-         }
-       }
-     }
-     ```
-
-2. **Product Service receives GraphQL request**
-   - **Service**: Product Service (Port 8083)
-   - **Action**: Parse and validate GraphQL query
-
-3. **Product Service resolves product field**
-   - **Check Redis cache**:
-     - **Database**: Redis
-     - **Key**: `product:770e8400-e29b-41d4-a716-446655440000`
-     - **Command**: `GET product:770e8400-...`
-     - **Cache Miss**: Continue to database
-
-   - **Query PostgreSQL**:
-     - **Database**: PostgreSQL (product_db)
-     - **Table**: `products`
-     - **Query**:
-
-       ```sql
-       SELECT id, name, description, price, sku, is_active
-       FROM products
-       WHERE id = '770e8400-e29b-41d4-a716-446655440000'
-       AND is_active = true;
-       ```
-
-     - **Result**: Base product data
-
-4. **Product Service resolves categories field (many-to-many)**
-   - **Database**: PostgreSQL (product_db)
-   - **Query** (JOIN junction table):
-
-     ```sql
-     SELECT c.id, c.name, c.slug
-     FROM categories c
-     INNER JOIN product_categories pc ON c.id = pc.category_id
-     WHERE pc.product_id = '770e8400-e29b-41d4-a716-446655440000';
-     ```
-
-   - **Result**:
-
-     ```json
-     [
-       { "id": "cat-001", "name": "Electronics", "slug": "electronics" },
-       {
-         "id": "cat-002",
-         "name": "Computer Accessories",
-         "slug": "computer-accessories"
-       }
-     ]
-     ```
-
-5. **Product Service resolves inventory field**
-   - **Check Redis cache**:
-     - **Database**: Redis
-     - **Key**: `inventory:770e8400-...`
-     - **Command**: `HGETALL inventory:770e8400-...`
-     - **Result**: `{ quantity: "50", reserved: "12" }`
-
-   - **If cache miss, query PostgreSQL**:
-     - **Database**: PostgreSQL (product_db)
-     - **Table**: `inventory`
-     - **Query**:
-
-       ```sql
-       SELECT quantity, reserved_quantity
-       FROM inventory
-       WHERE product_id = '770e8400-e29b-41d4-a716-446655440000';
-       ```
-
-   - **Calculate available**: 50 - 12 = 38
-
-6. **Product Service resolves relatedProducts field**
-   - **Logic**: Products in same categories
-   - **Database**: PostgreSQL (product_db)
-   - **Query**:
-
-     ```sql
-     SELECT DISTINCT p.id, p.name, p.price
-     FROM products p
-     INNER JOIN product_categories pc ON p.id = pc.product_id
-     WHERE pc.category_id IN (
-       SELECT category_id
-       FROM product_categories
-       WHERE product_id = '770e8400-e29b-41d4-a716-446655440000'
-     )
-     AND p.id != '770e8400-e29b-41d4-a716-446655440000'
-     AND p.is_active = true
-     LIMIT 5;
-     ```
-
-7. **Product Service caches complete result in Redis**
-   - **Database**: Redis
-   - **Key**: `product:770e8400-...`
-   - **Value**: Complete product JSON with all resolved fields
-   - **Command**: `SETEX product:770e8400-... 3600 "json_data"`
-   - **TTL**: 3600 seconds
-
-8. **Product Service returns GraphQL response**
-   - **Response**:
-
-     ```json
-     {
-       "data": {
-         "product": {
-           "id": "770e8400-e29b-41d4-a716-446655440000",
-           "name": "Wireless Mouse",
-           "description": "Ergonomic wireless mouse with 6 buttons",
-           "price": 29.99,
-           "categories": [
-             {
-               "id": "cat-001",
-               "name": "Electronics",
-               "slug": "electronics"
-             },
-             {
-               "id": "cat-002",
-               "name": "Computer Accessories",
-               "slug": "computer-accessories"
-             }
-           ],
-           "inventory": {
-             "quantity": 50,
-             "available": 38
-           },
-           "relatedProducts": [
-             {
-               "id": "880e8400-...",
-               "name": "Mechanical Keyboard",
-               "price": 49.99
-             }
-             // ... more products
-           ]
-         }
-       }
-     }
-     ```
-
----
-
 ## API Specifications
 
 ### REST API Endpoints
@@ -1836,137 +1661,6 @@ POST   /api/v1/orders               - Create new order
 GET    /api/v1/orders               - List user orders
 GET    /api/v1/orders/:id           - Get order details
 PUT    /api/v1/orders/:id/cancel    - Cancel order
-```
-
-### GraphQL Schema
-
-```graphql
-type User {
-  id: ID!
-  email: String!
-  firstName: String
-  lastName: String
-  profile: UserProfile
-  addresses: [Address!]!
-  orders: [Order!]!
-}
-
-type UserProfile {
-  id: ID!
-  phone: String
-  dateOfBirth: String
-  bio: String
-  avatarUrl: String
-}
-
-type Address {
-  id: ID!
-  addressType: AddressType!
-  streetAddress: String!
-  city: String!
-  state: String
-  postalCode: String!
-  country: String!
-  isDefault: Boolean!
-}
-
-type Product {
-  id: ID!
-  name: String!
-  description: String
-  price: Float!
-  sku: String!
-  categories: [Category!]!
-  inventory: Inventory!
-  relatedProducts: [Product!]!
-}
-
-type Category {
-  id: ID!
-  name: String!
-  slug: String!
-  products: [Product!]!
-  parent: Category
-  children: [Category!]!
-}
-
-type Inventory {
-  quantity: Int!
-  reserved: Int!
-  available: Int!
-}
-
-type Order {
-  id: ID!
-  orderNumber: String!
-  status: OrderStatus!
-  totalAmount: Float!
-  items: [OrderItem!]!
-  shippingAddress: Address
-  billingAddress: Address
-  payment: Payment
-  createdAt: String!
-}
-
-type OrderItem {
-  id: ID!
-  product: Product!
-  quantity: Int!
-  unitPrice: Float!
-  subtotal: Float!
-}
-
-type Payment {
-  id: ID!
-  paymentMethod: String!
-  amount: Float!
-  status: PaymentStatus!
-  transactionId: String
-}
-
-enum AddressType {
-  SHIPPING
-  BILLING
-  BOTH
-}
-
-enum OrderStatus {
-  PENDING
-  CONFIRMED
-  PROCESSING
-  SHIPPED
-  DELIVERED
-  CANCELLED
-}
-
-enum PaymentStatus {
-  PENDING
-  COMPLETED
-  FAILED
-  REFUNDED
-}
-
-type Query {
-  me: User!
-  product(id: ID!): Product
-  products(
-    page: Int
-    limit: Int
-    category: String
-    minPrice: Float
-    maxPrice: Float
-  ): ProductConnection!
-  category(id: ID!): Category
-  order(id: ID!): Order
-  myOrders(page: Int, limit: Int): OrderConnection!
-}
-
-type Mutation {
-  updateProfile(input: UpdateProfileInput!): User!
-  addAddress(input: AddressInput!): Address!
-  createOrder(input: CreateOrderInput!): Order!
-  cancelOrder(orderId: ID!): Order!
-}
 ```
 
 ---
@@ -2136,3 +1830,155 @@ Contributions are welcome! Please follow the standard pull request process.
 ## Support
 
 For questions or support, please open an issue in the repository.
+
+---
+
+# Agent Coding Guidelines
+
+This document provides guidelines for agents working on this codebase.
+
+## Project Overview
+
+Go microservices project with:
+
+- **Language**: Go 1.25.8
+- **API Framework**: Gin (REST), gRPC
+- **Databases**: PostgreSQL, MySQL, MongoDB, Redis
+- **Messaging**: Kafka
+
+## Services
+
+| Service | Port | Protocol |
+| --- | --- | --- |
+| auth-service | 8081 | REST + gRPC |
+| user-service | 8082 | REST + gRPC |
+| order-service | - | gRPC |
+| notification-service | - | Consumer |
+| analytics-service | - | Consumer |
+| common | - | Shared packages |
+
+## Build/Lint/Test Commands
+
+### Root Level
+
+```bash
+make build-all  # Build all modules
+```
+
+### Per-Service
+
+```bash
+cd auth-service
+
+make install-tools  # Install swag, golangci-lint, goose
+make update         # go mod tidy + go get -u
+make fmt            # go fmt
+make vet            # go vet
+make lint           # golangci-lint run
+make check          # fmt + vet + lint
+make swagger        # Generate swagger docs
+make build          # Build application
+make run            # Run application
+make clean          # Clean build artifacts
+```
+
+### Running a Single Test
+
+```bash
+go test -v -run TestAuthService ./src/internal/service/auth/...
+go test -v -cover ./...
+```
+
+## Code Style
+
+### Naming Conventions
+
+- **Interfaces**: `XxxItf` (e.g., `AuthServiceItf`)
+- **Private structs**: lowercase (e.g., `authService`)
+- **Init functions**: `InitXxxService`, `InitXxxRepository`
+- **Config structs**: `Options` with YAML tags
+- **Constants**: `PascalCase`
+
+### Project Structure
+
+```text
+service-name/
+├── src/
+│   ├── cmd/           # main.go, app.go
+│   ├── internal/
+│   │   ├── config/
+│   │   ├── handler/
+│   │   ├── model/
+│   │   ├── repository/
+│   │   └── service/
+├── etc/migrations/, sql/
+├── config.yaml
+├── go.mod
+└── Makefile
+```
+
+### Imports
+
+Group with blank lines:
+
+1. Standard library
+2. External packages (github.com)
+3. Local packages
+
+```go
+import (
+    "context"
+    "fmt"
+
+    "github.com/linggaaskaedo/go-kill/auth-service/src/internal/repository/auth"
+    authpb "github.com/linggaaskaedo/go-kill/common/pkg/proto/auth"
+
+    "golang.org/x/crypto/bcrypt"
+)
+```
+
+### Error Handling
+
+- Use `palantir/stacktrace` for error wrapping
+- Return `(value, error)` pattern
+- Use error codes from `common/pkg/errors/error_code.go`
+
+```go
+return nil, stacktrace.Propagate(err, "failed to create user")
+```
+
+### Logging
+
+- Use `rs/zerolog`
+- Initialize via `logger.Init(config)` in `common/pkg/logger/logger.go`
+
+```go
+log.Info().Str("user_id", userID).Msg("created")
+log.Error().Err(err).Msg("failed")
+```
+
+### Configuration
+
+```go
+type Options struct {
+    JwtSecret string `yaml:"jwt_secret"`
+    Topic     string `yaml:"topic"`
+}
+```
+
+### Database Patterns
+
+- `sqlx` for SQL databases
+- MongoDB driver v2
+- `go-redis/v9` for Redis
+- Repository pattern with interfaces
+
+### HTTP Handlers
+
+- Gin framework for REST APIs
+- Return JSON responses with proper status codes
+
+### Messaging
+
+- Kafka for event-driven communication
+- Consume in notification-service and analytics-service

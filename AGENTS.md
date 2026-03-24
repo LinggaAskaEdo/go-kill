@@ -16,7 +16,7 @@ Go microservices project with:
 | Service | Port | Protocol |
 | --- | --- | --- |
 | auth-service | 8081 | REST + gRPC |
-| user-service | 8082 | REST + GraphQL + gRPC |
+| user-service | 8082 | REST + gRPC |
 | order-service | - | gRPC |
 | notification-service | - | Consumer |
 | analytics-service | - | Consumer |
