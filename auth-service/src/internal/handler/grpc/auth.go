@@ -7,6 +7,16 @@ import (
 	authpb "github.com/linggaaskaedo/go-kill/common/pkg/proto/auth"
 )
 
+func (g *Grpc) Serve() []string {
+	return []string{
+		"/auth.AuthService/CreateAuthUser",
+		"/auth.AuthService/Login",
+		"/auth.AuthService/ValidateToken",
+		"/auth.AuthService/RefreshToken",
+		"/auth.AuthService/Logout",
+	}
+}
+
 func (g *Grpc) CreateAuthUser(ctx context.Context, req *authpb.CreateAuthUserRequest) (*authpb.CreateAuthUserResponse, error) {
 	dtoReq := &dto.CreateAuthUserRequest{
 		Email:    req.Email,

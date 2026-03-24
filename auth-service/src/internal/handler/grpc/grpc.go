@@ -6,6 +6,10 @@ import (
 	"github.com/rs/zerolog"
 )
 
+type GrpcItf interface {
+	Serve() []string
+}
+
 type Grpc struct {
 	authpb.AuthServiceServer
 	log zerolog.Logger
@@ -16,15 +20,5 @@ func InitGrpcHandler(log zerolog.Logger, svc *service.Service) *Grpc {
 	return &Grpc{
 		log: log,
 		svc: svc,
-	}
-}
-
-func (g *Grpc) Serve() []string {
-	return []string{
-		"/auth.AuthService/CreateAuthUser",
-		"/auth.AuthService/Login",
-		"/auth.AuthService/ValidateToken",
-		"/auth.AuthService/RefreshToken",
-		"/auth.AuthService/Logout",
 	}
 }
