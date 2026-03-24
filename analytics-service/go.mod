@@ -3,7 +3,7 @@ module github.com/linggaaskaedo/go-kill/analytics-service
 go 1.25.8
 
 require (
-	github.com/linggaaskaedo/go-kill/common v1.13.0
+	github.com/linggaaskaedo/go-kill/common v1.14.0
 	github.com/prometheus/client_golang v1.23.2
 	github.com/swaggo/swag v1.16.6
 )
@@ -84,7 +84,7 @@ require (
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/gin-gonic/gin v1.12.0
 	github.com/goccy/go-yaml v1.19.2
-	github.com/klauspost/compress v1.18.4 // indirect
+	github.com/klauspost/compress v1.18.5 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/redis/go-redis/v9 v9.18.0
