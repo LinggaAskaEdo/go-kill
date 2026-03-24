@@ -10,10 +10,6 @@ import (
 
 var onceGrpcHandler = &sync.Once{}
 
-type GrpcItf interface {
-	Serve() []string
-}
-
 type Grpc struct {
 	authpb.AuthServiceServer
 	log zerolog.Logger
@@ -22,11 +18,9 @@ type Grpc struct {
 
 func InitGrpcHandler(log zerolog.Logger, svc *service.Service) {
 	onceGrpcHandler.Do(func() {
-		g := &Grpc{
+		_ = &Grpc{
 			log: log,
 			svc: svc,
 		}
-
-		_ = g.Serve()
 	})
 }
