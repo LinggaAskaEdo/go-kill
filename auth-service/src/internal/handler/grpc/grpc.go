@@ -5,6 +5,7 @@ import (
 
 	"github.com/linggaaskaedo/go-kill/auth-service/src/internal/service"
 	authpb "github.com/linggaaskaedo/go-kill/common/pkg/proto/auth"
+
 	"github.com/rs/zerolog"
 )
 

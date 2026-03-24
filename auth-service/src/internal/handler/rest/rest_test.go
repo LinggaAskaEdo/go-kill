@@ -5,9 +5,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/gin-gonic/gin"
 	"github.com/linggaaskaedo/go-kill/auth-service/src/internal/handler/grpc"
 	"github.com/linggaaskaedo/go-kill/auth-service/src/internal/service"
+
+	"github.com/gin-gonic/gin"
 )
 
 const (
