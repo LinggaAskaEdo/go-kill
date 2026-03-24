@@ -1833,7 +1833,7 @@ For questions or support, please open an issue in the repository.
 
 ---
 
-# Agent Coding Guidelines
+## Agent Coding Guidelines
 
 This document provides guidelines for agents working on this codebase.
 
