@@ -17,7 +17,7 @@ func (g *Grpc) Serve() []string {
 	}
 }
 
-func (g *Grpc) CreateAuthUser(ctx context.Context, req *authpb.CreateAuthUserRequest) (*authpb.CreateAuthUserResponse, error) {
+func (g *Grpc) createAuthUser(ctx context.Context, req *authpb.CreateAuthUserRequest) (*authpb.CreateAuthUserResponse, error) {
 	dtoReq := &dto.CreateAuthUserRequest{
 		Email:    req.Email,
 		Password: req.Password,
