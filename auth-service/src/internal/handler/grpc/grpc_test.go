@@ -12,14 +12,7 @@ func TestInitGrpcHandler(t *testing.T) {
 	log := zerolog.Logger{}
 	svc := &service.Service{}
 
-	handler := InitGrpcHandler(log, svc)
-
-	if handler == nil {
-		t.Error("expected non-nil handler")
-	}
-	if handler.svc != svc {
-		t.Error("expected service to match")
-	}
+	InitGrpcHandler(log, svc)
 }
 
 func TestServe(t *testing.T) {

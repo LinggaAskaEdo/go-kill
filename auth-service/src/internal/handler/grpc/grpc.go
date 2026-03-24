@@ -20,17 +20,13 @@ type Grpc struct {
 	svc *service.Service
 }
 
-func InitGrpcHandler(log zerolog.Logger, svc *service.Service) *Grpc {
-	var g *Grpc
-
+func InitGrpcHandler(log zerolog.Logger, svc *service.Service) {
 	onceGrpcHandler.Do(func() {
-		g = &Grpc{
+		g := &Grpc{
 			log: log,
 			svc: svc,
 		}
 
 		_ = g.Serve()
 	})
-
-	return g
 }
