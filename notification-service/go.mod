@@ -3,7 +3,7 @@ module github.com/linggaaskaedo/go-kill/notification-service
 go 1.25.8
 
 require (
-	github.com/linggaaskaedo/go-kill/common v1.13.0
+	github.com/linggaaskaedo/go-kill/common v1.15.0
 	github.com/swaggo/swag v1.16.6
 )
 
@@ -41,7 +41,7 @@ require (
 	github.com/jcmturner/gofork v1.7.6 // indirect
 	github.com/jcmturner/gokrb5/v8 v8.4.4 // indirect
 	github.com/jcmturner/rpc/v2 v2.0.3 // indirect
-	github.com/klauspost/compress v1.18.4 // indirect
+	github.com/klauspost/compress v1.18.5 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/pierrec/lz4/v4 v4.1.26 // indirect

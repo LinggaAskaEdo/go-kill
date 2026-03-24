@@ -3,7 +3,7 @@ module github.com/linggaaskaedo/go-kill/order-service
 go 1.25.8
 
 require (
-	github.com/linggaaskaedo/go-kill/common v1.13.0
+	github.com/linggaaskaedo/go-kill/common v1.15.0
 	github.com/swaggo/swag v1.16.6
 	golang.org/x/sync v0.20.0
 )
@@ -33,7 +33,7 @@ require (
 	github.com/jcmturner/gofork v1.7.6 // indirect
 	github.com/jcmturner/gokrb5/v8 v8.4.4 // indirect
 	github.com/jcmturner/rpc/v2 v2.0.3 // indirect
-	github.com/klauspost/compress v1.18.4 // indirect
+	github.com/klauspost/compress v1.18.5 // indirect
 	github.com/palantir/stacktrace v0.0.0-20161112013806-78658fd2d177 // indirect
 	github.com/pierrec/lz4/v4 v4.1.26 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
@@ -80,7 +80,7 @@ require (
 	golang.org/x/net v0.52.0 // indirect
 	golang.org/x/sys v0.42.0 // indirect
 	golang.org/x/text v0.35.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260316180232-0b37fe3546d5 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260319201613-d00831a3d3e7 // indirect
 	google.golang.org/grpc v1.79.3
 	google.golang.org/protobuf v1.36.11 // indirect
 )

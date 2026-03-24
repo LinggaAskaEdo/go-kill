@@ -6,7 +6,7 @@ require (
 	github.com/gin-gonic/gin v1.12.0
 	github.com/goccy/go-yaml v1.19.2
 	github.com/jmoiron/sqlx v1.4.0
-	github.com/linggaaskaedo/go-kill/common v1.13.0
+	github.com/linggaaskaedo/go-kill/common v1.15.0
 	github.com/swaggo/swag v1.16.6
 	go.mongodb.org/mongo-driver/v2 v2.5.0
 	google.golang.org/grpc v1.79.3
@@ -19,7 +19,7 @@ require (
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-sql-driver/mysql v1.9.3 // indirect
-	github.com/klauspost/compress v1.18.4 // indirect
+	github.com/klauspost/compress v1.18.5 // indirect
 	github.com/palantir/stacktrace v0.0.0-20161112013806-78658fd2d177 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/redis/go-redis/v9 v9.18.0 // indirect
@@ -37,7 +37,7 @@ require (
 	go.opentelemetry.io/otel/metric v1.42.0 // indirect
 	go.opentelemetry.io/otel/trace v1.42.0 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260316180232-0b37fe3546d5 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260319201613-d00831a3d3e7 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 )
 

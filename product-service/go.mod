@@ -4,7 +4,7 @@ go 1.25.8
 
 require (
 	github.com/gin-gonic/gin v1.12.0
-	github.com/linggaaskaedo/go-kill/common v1.13.0
+	github.com/linggaaskaedo/go-kill/common v1.15.0
 	github.com/openpcc/openpcc v0.0.80
 	github.com/redis/go-redis/v9 v9.18.0
 	github.com/swaggo/swag v1.16.6
@@ -71,7 +71,7 @@ require (
 	golang.org/x/net v0.52.0 // indirect
 	golang.org/x/text v0.35.0 // indirect
 	golang.org/x/tools v0.43.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260316180232-0b37fe3546d5 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260319201613-d00831a3d3e7 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 )
