@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/linggaaskaedo/go-kill/analytics-service/src/internal/service"
+
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -28,7 +29,7 @@ func TestInitRestHandler(t *testing.T) {
 	InitRestHandler(router, svc, nil, nil)
 }
 
-func TestServe_RoutesRegistered(t *testing.T) {
+func TestServeRoutesRegistered(t *testing.T) {
 	router := setupTestRouter()
 
 	svc := &service.Service{}
@@ -66,7 +67,7 @@ func TestServe_RoutesRegistered(t *testing.T) {
 	}
 }
 
-func TestServe_LivenessRoute(t *testing.T) {
+func TestServeLivenessRoute(t *testing.T) {
 	router := setupTestRouter()
 
 	handler := &rest{
@@ -85,7 +86,7 @@ func TestServe_LivenessRoute(t *testing.T) {
 	}
 }
 
-func TestServe_ReadinessRoute(t *testing.T) {
+func TestServeReadinessRoute(t *testing.T) {
 	router := setupTestRouter()
 
 	handler := &rest{
@@ -104,7 +105,7 @@ func TestServe_ReadinessRoute(t *testing.T) {
 	}
 }
 
-func TestServe_MetricsRoute(t *testing.T) {
+func TestServeMetricsRoute(t *testing.T) {
 	router := setupTestRouter()
 
 	handler := &rest{

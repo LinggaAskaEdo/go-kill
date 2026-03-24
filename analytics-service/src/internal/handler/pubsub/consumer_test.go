@@ -3,8 +3,9 @@ package pubsub
 import (
 	"testing"
 
-	"github.com/IBM/sarama"
 	"github.com/linggaaskaedo/go-kill/analytics-service/src/internal/service"
+
+	"github.com/IBM/sarama"
 	"github.com/rs/zerolog"
 )
 
@@ -26,7 +27,7 @@ func TestNewConsumerGroupHandler(t *testing.T) {
 	}
 }
 
-func TestConsumerGroupHandler_Setup(t *testing.T) {
+func TestConsumerGroupHandlerSetup(t *testing.T) {
 	handler := &ConsumerGroupHandler{}
 
 	err := handler.Setup(nil)
@@ -35,7 +36,7 @@ func TestConsumerGroupHandler_Setup(t *testing.T) {
 	}
 }
 
-func TestConsumerGroupHandler_Cleanup(t *testing.T) {
+func TestConsumerGroupHandlerCleanup(t *testing.T) {
 	handler := &ConsumerGroupHandler{}
 
 	err := handler.Cleanup(nil)
