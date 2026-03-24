@@ -381,13 +381,13 @@ CREATE TABLE inventory (
 ```sql
 -- orders table
 CREATE TABLE orders (
-    id CHAR(36) PRIMARY KEY,
-    user_id CHAR(36) NOT NULL,
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL,
     order_number VARCHAR(50) UNIQUE NOT NULL,
     status ENUM('pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled') DEFAULT 'pending',
     total_amount DECIMAL(10, 2) NOT NULL,
-    shipping_address_id CHAR(36),
-    billing_address_id CHAR(36),
+    shipping_address_id UUID,
+    billing_address_id UUID,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_user_id (user_id),
@@ -398,9 +398,9 @@ CREATE TABLE orders (
 
 -- order_items table (One-to-Many)
 CREATE TABLE order_items (
-    id CHAR(36) PRIMARY KEY,
-    order_id CHAR(36) NOT NULL,
-    product_id CHAR(36) NOT NULL,
+    id UUID PRIMARY KEY,
+    order_id UUID NOT NULL,
+    product_id UUID NOT NULL,
     product_name VARCHAR(255) NOT NULL,
     quantity INT NOT NULL,
     unit_price DECIMAL(10, 2) NOT NULL,
@@ -413,8 +413,8 @@ CREATE TABLE order_items (
 
 -- payments table
 CREATE TABLE payments (
-    id CHAR(36) PRIMARY KEY,
-    order_id CHAR(36) NOT NULL,
+    id UUID PRIMARY KEY,
+    order_id UUID NOT NULL,
     payment_method VARCHAR(50) NOT NULL,
     amount DECIMAL(10, 2) NOT NULL,
     status ENUM('pending', 'completed', 'failed', 'refunded') DEFAULT 'pending',
@@ -428,8 +428,8 @@ CREATE TABLE payments (
 
 -- order_status_history table
 CREATE TABLE order_status_history (
-    id CHAR(36) PRIMARY KEY,
-    order_id CHAR(36) NOT NULL,
+    id UUID PRIMARY KEY,
+    order_id UUID NOT NULL,
     status VARCHAR(50) NOT NULL,
     note TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
