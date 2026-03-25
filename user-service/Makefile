@@ -19,8 +19,8 @@ clean: ## Clean build artifacts
 
 update: ## Update dependencies
 	@echo "Updating dependencies..."
+	@go get -u ./...
 	@go mod tidy
-	@go get -u ./...	
 	@echo "Dependencies updated"
 
 fmt: ## Format code

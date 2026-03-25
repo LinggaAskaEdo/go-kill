@@ -3,7 +3,7 @@ module github.com/linggaaskaedo/go-kill/analytics-service
 go 1.25.8
 
 require (
-	github.com/linggaaskaedo/go-kill/common v1.16.0
+	github.com/linggaaskaedo/go-kill/common v1.16.1
 	github.com/prometheus/client_golang v1.23.2
 	github.com/swaggo/swag v1.16.6
 )
@@ -50,7 +50,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/palantir/stacktrace v0.0.0-20161112013806-78658fd2d177 // indirect
-	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
+	github.com/pelletier/go-toml/v2 v2.3.0 // indirect
 	github.com/pierrec/lz4/v4 v4.1.26 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
