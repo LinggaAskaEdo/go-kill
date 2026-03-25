@@ -5,8 +5,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/gin-gonic/gin"
 	"github.com/linggaaskaedo/go-kill/product-service/src/internal/service"
+
+	"github.com/gin-gonic/gin"
 )
 
 func setupTestRouter() *gin.Engine {

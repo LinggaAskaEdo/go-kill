@@ -11,6 +11,14 @@ import (
 
 var onceGrpcHandler = &sync.Once{}
 
+// type GrpcItf interface {
+// 	CreateAuthUser(ctx context.Context, req *authpb.CreateAuthUserRequest) (*authpb.CreateAuthUserResponse, error)
+// 	Login(ctx context.Context, req *authpb.LoginRequest) (*authpb.LoginResponse, error)
+// 	ValidateToken(ctx context.Context, req *authpb.ValidateTokenRequest) (*authpb.ValidateTokenResponse, error)
+// 	RefreshToken(ctx context.Context, req *authpb.RefreshTokenRequest) (*authpb.RefreshTokenResponse, error)
+// 	Logout(ctx context.Context, req *authpb.LogoutRequest) (*authpb.LogoutResponse, error)
+// }
+
 type Grpc struct {
 	authpb.AuthServiceServer
 	log zerolog.Logger

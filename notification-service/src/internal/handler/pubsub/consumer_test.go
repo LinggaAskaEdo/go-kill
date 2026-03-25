@@ -3,8 +3,9 @@ package pubsub
 import (
 	"testing"
 
-	"github.com/IBM/sarama"
 	"github.com/linggaaskaedo/go-kill/notification-service/src/internal/service"
+
+	"github.com/IBM/sarama"
 	"github.com/rs/zerolog"
 )
 

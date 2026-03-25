@@ -64,7 +64,7 @@ func TestServeRoutesRegistered(t *testing.T) {
 	}
 }
 
-func TestAuthMiddlewareNoHeader(t *testing.T) {
+func TestAuthMiddlewareNoHeaderRest(t *testing.T) {
 	router := setupTestRouter()
 
 	svc := &service.Service{}
@@ -87,7 +87,7 @@ func TestAuthMiddlewareNoHeader(t *testing.T) {
 	}
 }
 
-func TestAuthMiddlewareInvalidFormat(t *testing.T) {
+func TestAuthMiddlewareInvalidFormatRest(t *testing.T) {
 	router := setupTestRouter()
 
 	svc := &service.Service{}
