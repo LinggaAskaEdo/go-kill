@@ -1,9 +1,9 @@
 module github.com/linggaaskaedo/go-kill/notification-service
 
-go 1.25.8
+go 1.25.9
 
 require (
-	github.com/linggaaskaedo/go-kill/common v1.16.1
+	github.com/linggaaskaedo/go-kill/common v1.16.2
 	github.com/swaggo/swag v1.16.6
 )
 
@@ -49,7 +49,7 @@ require (
 	github.com/rcrowley/go-metrics v0.0.0-20250401214520-65e299d6c5c9 // indirect
 	github.com/redis/go-redis/v9 v9.18.0
 	github.com/rs/xid v1.6.0
-	github.com/rs/zerolog v1.34.0
+	github.com/rs/zerolog v1.35.0
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.2.0 // indirect
 	github.com/xdg-go/stringprep v1.0.4 // indirect
